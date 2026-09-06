@@ -3,9 +3,10 @@ import { Screen, Card, C, Header, Badge } from '@/components/ui';
 
 const items = [
   ['Education', 'Trading concepts, risk management and BlueZone methodology.'],
-  ['Broker information', 'Review broker information before connecting any external trading account.'],
+  ['Broker information', 'Review supported broker information and account connection requirements.'],
+  ['AI Assistant', 'Ask trading questions using the secured server-side AI service.'],
   ['Support', 'Provider credentials and operational secrets remain server-side.'],
-];
+] as const;
 
 export default function More() {
   return (
