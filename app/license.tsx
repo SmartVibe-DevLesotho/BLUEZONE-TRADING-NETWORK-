@@ -1,0 +1,8 @@
+import { useState } from 'react';
+import { Text, TextInput, View } from 'react-native';
+import { useRouter } from 'expo-router';
+import * as SecureStore from 'expo-secure-store';
+import { Button, Card, Screen, C } from '@/components/ui';
+import { validateLicense } from '@/lib/backend';
+
+export default function License(){const router=useRouter();const[token,setToken]=useState('');const[busy,setBusy]=useState(false);const[error,setError]=useState('');async function activate(){setError('');if(!token.trim())return setError('Enter your license token.');setBusy(true);try{const result=await validateLicense(token.trim());if(!result.valid)throw new Error(result.message);await SecureStore.setItemAsync('bluezone_license_active','1');router.replace('/onboarding/risk')}catch(e:any){setError(e?.message??'License validation failed.')}finally{setBusy(false)}}return <Screen><View style={{flex:1,justifyContent:'center'}}><Text style={{fontSize:13,fontWeight:'900',color:C.blue,letterSpacing:1}}>BLUEZONE TRADING NETWORK</Text><Text style={{fontSize:40,fontWeight:'900',color:C.midnight,marginTop:8}}>Activate app</Text><Text style={{color:C.muted,fontSize:16,lineHeight:24,marginTop:10}}>Enter the license token supplied by BlueZone. A valid token is required before the trading workspace can be opened.</Text><Card><Text style={{fontWeight:'900',marginBottom:8}}>License token</Text><TextInput value={token} onChangeText={setToken} autoCapitalize="characters" placeholder="Paste token" style={{borderWidth:1,borderColor:'#E6EBF1',borderRadius:14,padding:15,fontSize:16}}/>{error?<Text style={{color:C.red,marginTop:8}}>{error}</Text>:null}</Card><Button title={busy?'Activating…':'Activate license'} onPress={activate}/></View></Screen>}
