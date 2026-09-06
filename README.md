@@ -1,13 +1,24 @@
-# BlueZone Supabase setup
+# BlueZone Trading Network
 
-1. Open the Supabase project dashboard.
-2. Go to SQL Editor and run `schema.sql`.
-3. Deploy the four Edge Functions from this folder using the Supabase dashboard or Supabase CLI:
-   - market-data
-   - consensus-signals
-   - license-validate
-   - ai-chat
-4. For `ai-chat`, optionally add the `GEMINI_API_KEY` Edge Function secret. The mobile app does not receive this secret.
-5. Create license tokens by storing SHA-256 hashes in `public.licenses` (never store plaintext tokens).
+BlueZone Trading Network is a portrait-first Expo/React Native trading companion for market data, session tools, consensus signals, education, broker information and optional MT5 automation integrations.
 
-No service-role key belongs in the Expo app.
+## Development
+
+```bash
+npm install
+npx expo start
+```
+
+## Environment
+
+Copy `.env.example` to `.env` locally and provide the Supabase project URL and publishable key. Never commit `.env`, service-role keys, API secrets, or other credentials.
+
+## Supabase
+
+The app uses the existing BlueZone Supabase backend. Keep BlueZone resources isolated from unrelated applications. Server-only secrets such as `GEMINI_API_KEY` and Supabase service-role credentials belong only in Edge Function/server environments.
+
+## Production checks
+
+Before release, verify authentication, license validation, market-data providers, consensus signals, AI provider configuration, secure storage, and all native build identifiers. Run TypeScript checks and an Expo production build before distribution.
+
+Developer: SmartVibes Lesotho
