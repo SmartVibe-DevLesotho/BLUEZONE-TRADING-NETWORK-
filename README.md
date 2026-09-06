@@ -1,6 +1,6 @@
 # BlueZone Trading Network
 
-BlueZone Trading Network is a portrait-first Expo/React Native trading companion for live market data, trading sessions, consensus signals, education, broker information and optional MT5 integrations.
+BlueZone Trading Network is a portrait-first Expo/React Native trading application for live market data, trading sessions, consensus signals, education, broker information and optional MT5 integrations.
 
 ## Current architecture
 
@@ -8,7 +8,7 @@ BlueZone Trading Network is a portrait-first Expo/React Native trading companion
 - Supabase Auth with SecureStore-backed sessions
 - Supabase Edge Functions for server-side market data, consensus signals, license validation and AI
 - No broker credentials or provider secrets in the mobile client
-- Paper-trading state is explicitly simulated; the client does not claim to place broker orders
+- No paper trading, simulated positions, synthetic P/L, fabricated market prices or demo trading results
 - Market instruments are metadata only; live prices must come from the configured backend provider
 
 ## Development
@@ -28,6 +28,10 @@ Copy `.env.example` to `.env` locally and provide the BlueZone Supabase project 
 The mobile app targets the existing **BlueZone Trading Network** Supabase project. BlueZone resources must remain isolated from unrelated applications. Server-only credentials such as `SUPABASE_SERVICE_ROLE_KEY` and `GEMINI_API_KEY` belong only in Edge Function/server environments.
 
 The existing backend currently exposes active Edge Functions including `market-data`, `consensus-signals`, `license-validate`, and `ai-chat`. Additional BlueZone platform functions may exist in Supabase and should not be removed merely because they are not part of the mobile repository.
+
+## Live-data rule
+
+The production app must never disguise unavailable, delayed, estimated, simulated or fallback values as live market data. When a provider is unavailable or a quote is stale, the UI must clearly report that condition rather than inventing a price or signal.
 
 ## Release gate
 
