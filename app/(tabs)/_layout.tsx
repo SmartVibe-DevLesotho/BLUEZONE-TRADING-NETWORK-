@@ -9,6 +9,7 @@ export default function TabsLayout() {
       <Tabs.Screen name="sessions" options={{ title: 'Sessions', tabBarIcon: ({ color, size }) => <Ionicons name="time" color={color} size={size} /> }} />
       <Tabs.Screen name="autotrade" options={{ title: 'AutoTrade', tabBarIcon: ({ color, size }) => <Ionicons name="flash" color={color} size={size} /> }} />
       <Tabs.Screen name="more" options={{ title: 'More', tabBarIcon: ({ color, size }) => <Ionicons name="menu" color={color} size={size} /> }} />
+      <Tabs.Screen name="profile" options={{ href: null }} />
     </Tabs>
   );
 }
