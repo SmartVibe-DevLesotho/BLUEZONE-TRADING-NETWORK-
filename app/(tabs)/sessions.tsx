@@ -1,5 +1,5 @@
-import { Text, View } from 'react-native';
-import { Screen, Card, C } from '@/components/ui';
+import { ScrollView, Text, View } from 'react-native';
+import { Screen, Card, C, Header, Badge } from '@/components/ui';
 
 const sessions = [
   ['Sydney', '22:00–07:00 UTC'],
@@ -9,5 +9,10 @@ const sessions = [
 ];
 
 export default function Sessions() {
-  return <Screen><Text style={{ fontSize:30,fontWeight:'900',color:C.midnight }}>Sessions</Text><Text style={{ color:C.muted,marginTop:4 }}>Global forex sessions. Times are UTC.</Text>{sessions.map(([name,time])=><Card key={name}><View style={{flexDirection:'row',justifyContent:'space-between'}}><Text style={{fontSize:17,fontWeight:'900'}}>{name}</Text><Text style={{color:C.muted}}>{time}</Text></View></Card>)}</Screen>;
+  return <Screen><ScrollView showsVerticalScrollIndicator={false}>
+    <Header title="Sessions" subtitle="Global forex session windows referenced in UTC." right={<Badge label="UTC" tone="blue" />} />
+    <Card elevated><Text style={{ fontWeight: '900', fontSize: 18 }}>Session context</Text><Text style={{ color: C.muted, marginTop: 6, lineHeight: 20 }}>Use the session selector in Signals to align consensus analysis with the trading window you are monitoring.</Text></Card>
+    {sessions.map(([name, time]) => <Card key={name}><View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}><Text style={{ fontSize: 18, fontWeight: '900', color: C.ink }}>{name}</Text><Text style={{ color: C.slate, fontWeight: '700' }}>{time}</Text></View></Card>)}
+    <Text style={{ color: C.muted, fontSize: 12, lineHeight: 18, marginVertical: 14 }}>Session boundaries are reference windows; market conditions and daylight-saving conventions can affect practical overlap.</Text>
+  </ScrollView></Screen>;
 }
