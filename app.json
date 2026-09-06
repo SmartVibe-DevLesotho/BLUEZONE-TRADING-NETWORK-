@@ -1,0 +1,1 @@
+{"expo":{"name":"BlueZone Trading Network","slug":"bluezone-trading-network","version":"1.0.0","orientation":"portrait","scheme":"bluezone","userInterfaceStyle":"light","plugins":["expo-router","expo-secure-store"],"ios":{"supportsTablet":true},"android":{"adaptiveIcon":{"backgroundColor":"#0B1220"}}}}
