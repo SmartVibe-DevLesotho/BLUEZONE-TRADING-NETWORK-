@@ -2,7 +2,7 @@ import { supabase } from './supabase';
 
 export async function invokeFunction<T>(name: string, body: unknown): Promise<T> {
   if (!supabase) throw new Error('Supabase is not configured.');
-  const { data, error } = await supabase.functions.invoke(name, { body });
+  const { data, error } = await supabase.functions.invoke(name, { body: JSON.stringify(body) });
   if (error) throw error;
   return data as T;
 }
