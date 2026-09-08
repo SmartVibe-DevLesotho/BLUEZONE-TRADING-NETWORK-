@@ -1,4 +1,4 @@
-name: BlueZone CI
+name: SmartVibe CI
 
 on:
   push:
