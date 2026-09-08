@@ -1,0 +1,15 @@
+alter table public.licenses add column if not exists plan_key text not null default 'professional';
+create table if not exists public.smartvibe_signal_daily_usage (user_id uuid not null references auth.users(id) on delete cascade, usage_date date not null default current_date, signal_count integer not null default 0 check(signal_count>=0), updated_at timestamptz not null default now(), primary key(user_id,usage_date));
+alter table public.smartvibe_signal_daily_usage enable row level security;
+revoke all on public.smartvibe_signal_daily_usage from anon,authenticated;
+create or replace function public.consume_smartvibe_signal_quota(p_user_id uuid,p_daily_limit integer) returns table(allowed boolean,used_count integer,daily_limit integer,remaining integer) language plpgsql security definer set search_path=public as $$ declare v_used integer; begin if p_daily_limit is null or p_daily_limit<0 then p_daily_limit:=0; end if; insert into public.smartvibe_signal_daily_usage(user_id,usage_date,signal_count) values(p_user_id,current_date,0) on conflict(user_id,usage_date) do nothing; select signal_count into v_used from public.smartvibe_signal_daily_usage where user_id=p_user_id and usage_date=current_date for update; if v_used>=p_daily_limit then return query select false,v_used,p_daily_limit,0; return; end if; update public.smartvibe_signal_daily_usage set signal_count=v_used+1,updated_at=now() where user_id=p_user_id and usage_date=current_date; return query select true,v_used+1,p_daily_limit,p_daily_limit-(v_used+1); end; $$;
+revoke all on function public.consume_smartvibe_signal_quota(uuid,integer) from public,anon,authenticated;
+grant execute on function public.consume_smartvibe_signal_quota(uuid,integer) to service_role;
+alter table public.signals drop constraint if exists signals_score_check;
+alter table public.signals add constraint signals_score_check check(score>=0 and score<=100);
+alter table public.user_preferences alter column selected_strategy set default 'SmartVibe Trading Network';
+alter table public.user_preferences alter column consensus_threshold set default 8;
+alter table public.user_preferences alter column paper_trading set default false;
+update public.portal_plans set features=coalesce(features,'{}'::jsonb)||'{"signal_daily_limit":5,"methodology":"SmartVibe Trading Network"}'::jsonb where plan_key='professional';
+update public.portal_plans set features=coalesce(features,'{}'::jsonb)||'{"signal_daily_limit":10,"methodology":"SmartVibe Trading Network"}'::jsonb where plan_key='advanced';
+update public.portal_plans set features=coalesce(features,'{}'::jsonb)||'{"signal_daily_limit":20,"methodology":"SmartVibe Trading Network"}'::jsonb where plan_key='elite';
