@@ -54,34 +54,11 @@ Deno.serve(async (req) => {
       return json({ valid: false, message: 'Invalid activation token.' }, 400);
     }
     const tokenHash = await sha256(body.token.trim().toUpperCase());
-    const { data: license, error: licenseError } = await supabase
-      .from('licenses')
-      .select('id, active, expires_at, max_activations, activation_count')
-      .eq('token_hash', tokenHash)
-      .maybeSingle();
-    if (licenseError) throw licenseError;
-    if (!license) return json({ valid: false, message: 'Invalid activation token.' });
-    if (!license.active) return json({ valid: false, message: 'This license has been revoked.' });
-    if (license.expires_at && new Date(license.expires_at).getTime() <= Date.now()) return json({ valid: false, message: 'This license has expired.' });
-
-    const { data: existing } = await supabase.from('user_licenses').select('id').eq('user_id', user.id).eq('license_id', license.id).maybeSingle();
-    if (existing) return json({ valid: true, message: 'License already active.', expiresAt: license.expires_at ?? null });
-    if (license.activation_count >= license.max_activations) return json({ valid: false, message: 'This license has reached its activation limit.' });
-
-    const { data: claimed, error: claimError } = await supabase
-      .from('licenses')
-      .update({ activation_count: license.activation_count + 1 })
-      .eq('id', license.id)
-      .eq('activation_count', license.activation_count)
-      .lt('activation_count', license.max_activations)
-      .select('id')
-      .maybeSingle();
-    if (claimError) throw claimError;
-    if (!claimed) return json({ valid: false, message: 'This license has already been activated on another account.' });
-
-    const { error: linkError } = await supabase.from('user_licenses').insert({ user_id: user.id, license_id: license.id });
-    if (linkError) throw linkError;
-    return json({ valid: true, message: 'License activated.', expiresAt: license.expires_at ?? null });
+    const { data, error } = await supabase.rpc('redeem_license', { p_token_hash: tokenHash, p_user_id: user.id });
+    if (error) throw error;
+    const result = data?.[0];
+    if (!result) return json({ valid: false, message: 'License service returned no result.' }, 500);
+    return json({ valid: !!result.valid, message: result.message, expiresAt: result.expires_at ?? null });
   } catch (error) {
     console.error(error);
     return json({ valid: false, message: 'License service unavailable.' }, 500);
