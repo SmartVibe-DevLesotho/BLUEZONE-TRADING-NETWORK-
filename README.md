@@ -1,6 +1,17 @@
-# BlueZone Trading Network
+# SmartVibe Trading Network
 
-BlueZone Trading Network is a portrait-first Expo/React Native trading application for live market data, trading sessions, consensus signals, education, broker information and optional MT5 integrations.
+SmartVibe Trading Network is a portrait-first Expo/React Native trading application for live market data, trading sessions, the SmartVibe Trading Strategy, consensus analysis, education, broker information and optional MT5 integrations.
+
+## Main strategy
+
+**SmartVibe Trading Strategy** is the primary methodology of the application. Its A & V framework is applied across the premium methodology experience:
+
+- Higher-timeframe direction from Daily or 4H
+- BUY setup: identify the break of A's highs, then look for an FVG or Order Block entry; target the closest high
+- SELL setup: identify the break of V's lows, then look for an FVG or Order Block entry; target the closest low
+- Entries require the defined structural/liquidity sequence; absence of confirmation means no trade setup
+
+This methodology is educational and does not guarantee outcomes.
 
 ## Current architecture
 
@@ -21,13 +32,13 @@ npx expo start
 
 ## Environment
 
-Copy `.env.example` to `.env` locally and provide the BlueZone Supabase project URL and publishable key. Never commit `.env`, service-role keys, Gemini keys, broker credentials, or other secrets.
+Copy `.env.example` to `.env` locally and provide the SmartVibe Supabase project URL and publishable key. Never commit `.env`, service-role keys, Gemini keys, broker credentials, or other secrets.
 
 ## Supabase
 
-The mobile app targets the existing **BlueZone Trading Network** Supabase project. BlueZone resources must remain isolated from unrelated applications. Server-only credentials such as `SUPABASE_SERVICE_ROLE_KEY` and `GEMINI_API_KEY` belong only in Edge Function/server environments.
+The mobile app targets the existing Supabase infrastructure. Existing backend resources must remain intact and isolated from unrelated applications. Server-only credentials such as `SUPABASE_SERVICE_ROLE_KEY` and `GEMINI_API_KEY` belong only in Edge Function/server environments.
 
-The existing backend currently exposes active Edge Functions including `market-data`, `consensus-signals`, `license-validate`, and `ai-chat`. Additional BlueZone platform functions may exist in Supabase and should not be removed merely because they are not part of the mobile repository.
+The existing backend exposes active Edge Functions including `market-data`, `consensus-signals`, `license-validate`, and `ai-chat`. Additional platform functions may exist in Supabase and should not be removed merely because they are not part of the mobile repository.
 
 ## Live-data rule
 

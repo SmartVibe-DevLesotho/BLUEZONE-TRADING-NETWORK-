@@ -30,16 +30,16 @@ function RuleCard({ title, rules, tone }: { title: string; rules: string[]; tone
 
 export default function Education() {
   return <Screen><ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 28 }}>
-    <Header title="SmartVibe Pro Premium" subtitle="A & V methodology" right={<Badge label="PREMIUM" tone="blue" />} />
+    <Header title="SmartVibe Trading Strategy" subtitle="Main A & V methodology" right={<Badge label="PREMIUM" tone="blue" />} />
     <Card>
-      <Text style={{ fontSize: 17, fontWeight: '900', color: C.ink }}>A & V setup framework</Text>
-      <Text style={{ color: C.muted, marginTop: 7, lineHeight: 21 }}>Use higher-timeframe direction first, then confirm the A or V liquidity break before selecting an FVG or Order Block entry.</Text>
+      <Text style={{ fontSize: 18, fontWeight: '900', color: C.ink }}>The main strategy</Text>
+      <Text style={{ color: C.muted, marginTop: 7, lineHeight: 21 }}>SmartVibe Trading Strategy is the primary methodology of this application. Start with higher-timeframe direction, confirm the A or V liquidity break, then select an FVG or Order Block entry and the nearest opposing liquidity target.</Text>
     </Card>
     <RuleCard title="BUY" rules={buyRules} tone="positive" />
     <RuleCard title="SELL" rules={sellRules} tone="negative" />
     <Card>
       <Text style={{ fontWeight: '900', color: C.ink }}>Execution note</Text>
-      <Text style={{ color: C.muted, marginTop: 6, lineHeight: 20 }}>This is an educational methodology reference. It does not create simulated trades or guarantee outcomes.</Text>
+      <Text style={{ color: C.muted, marginTop: 6, lineHeight: 20 }}>The SmartVibe Trading Strategy is an educational methodology reference. It does not create simulated trades or guarantee outcomes.</Text>
     </Card>
   </ScrollView></Screen>;
 }

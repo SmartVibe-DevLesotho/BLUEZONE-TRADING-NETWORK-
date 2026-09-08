@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
+import { useRouter } from 'expo-router';
 import { ActivityIndicator, View } from 'react-native';
-import { Tabs, useRouter } from 'expo-router';
+import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
 import { C } from '@/components/ui';
@@ -26,7 +27,7 @@ export default function TabsLayout() {
     return () => { active = false; };
   }, [router]);
   if (!ready) return <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: C.white }}><ActivityIndicator /></View>;
-  return <Tabs screenOptions={{ headerShown: false, tabBarActiveTintColor: C.blue, tabBarInactiveTintColor: C.muted, tabBarStyle: { height: 68, paddingTop: 7, paddingBottom: 9, borderTopColor: C.border, backgroundColor: C.white }, tabBarLabelStyle: { fontSize: 11, fontWeight: '700' } }}>
+  return <Tabs screenOptions={{ headerShown: false, tabBarActiveTintColor: C.blue, tabBarInactiveTintColor: C.muted, tabBarStyle: { height: 68, paddingTop: 7, paddingBottom: 9, borderTopColor: C.border, backgroundColor: C.white }, tabBarLabelStyle: { fontSize: 11, fontWeight: '700' }}>
     {screens.map(([name, title, icon]) => <Tabs.Screen key={name} name={name} options={{ title, tabBarIcon: ({ color, size }) => <Ionicons name={icon} color={color} size={size} /> }} />)}
     <Tabs.Screen name="profile" options={{ href: null }} />
   </Tabs>;
