@@ -1,6 +1,7 @@
-import { Redirect } from 'expo-router';
 import { useEffect, useState } from 'react';
+import { Text } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
+import { Redirect } from 'expo-router';
 
 export default function Index(){
  const [target,setTarget]=useState<string | null>(null);
