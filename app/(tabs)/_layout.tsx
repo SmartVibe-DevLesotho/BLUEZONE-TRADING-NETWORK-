@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
-import { useRouter } from 'expo-router';
+import { useRouter, Tabs } from 'expo-router';
 import { ActivityIndicator, View } from 'react-native';
-import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
 import { validateLicense } from '@/lib/backend';
@@ -19,16 +18,23 @@ const screens = [
 export default function TabsLayout() {
   const router = useRouter();
   const [ready, setReady] = useState(false);
+
   useEffect(() => {
     let active = true;
     (async () => {
       try {
-        const { data } = await supabase?.auth.getSession() ?? { data: { session: null } };
+        const sessionResult = await supabase.auth.getSession();
         if (!active) return;
-        if (!data.session) { router.replace('/auth'); return; }
+        if (!sessionResult.data.session) {
+          router.replace('/auth');
+          return;
+        }
         const deviceId = await getDeviceId();
         const license = await validateLicense({ action: 'status', deviceId });
-        if (!license.valid) { router.replace('/license'); return; }
+        if (!license.valid) {
+          router.replace('/license');
+          return;
+        }
         setReady(true);
       } catch {
         if (active) router.replace('/license');
@@ -36,9 +42,30 @@ export default function TabsLayout() {
     })();
     return () => { active = false; };
   }, [router]);
-  if (!ready) return <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: C.white }}><ActivityIndicator /></View>;
-  return <Tabs screenOptions={{ headerShown: false, tabBarActiveTintColor: C.blue, tabBarInactiveTintColor: C.muted, tabBarStyle: { height: 68, paddingTop: 7, paddingBottom: 9, borderTopColor: C.border, backgroundColor: C.white }, tabBarLabelStyle: { fontSize: 11, fontWeight: '700' }}>
-    {screens.map(([name, title, icon]) => <Tabs.Screen key={name} name={name} options={{ title, tabBarIcon: ({ color, size }) => <Ionicons name={icon} color={color} size={size} /> }} />)}
-    <Tabs.Screen name="profile" options={{ href: null }} />
-  </Tabs>;
+
+  if (!ready) {
+    return <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: C.surface }}><ActivityIndicator color={C.cyan} /></View>;
+  }
+
+  return (
+    <Tabs screenOptions={{
+      headerShown: false,
+      tabBarActiveTintColor: C.cyan,
+      tabBarInactiveTintColor: C.muted,
+      tabBarStyle: { height: 68, paddingTop: 7, paddingBottom: 9, borderTopColor: C.border, backgroundColor: C.navy },
+      tabBarLabelStyle: { fontSize: 11, fontWeight: '700' },
+    }}>
+      {screens.map(([name, title, icon]) => (
+        <Tabs.Screen
+          key={name}
+          name={name}
+          options={{
+            title,
+            tabBarIcon: ({ color, size }) => <Ionicons name={icon} color={color} size={size} />,
+          }}
+        />
+      ))}
+      <Tabs.Screen name="profile" options={{ href: null }} />
+    </Tabs>
+  );
 }
