@@ -1,10 +1,16 @@
-import { useEffect, useState } from 'react';
-import { Text } from 'react-native';
-import * as SecureStore from 'expo-secure-store';
-import { Redirect } from 'expo-router';
+import { Pressable, Text, View } from 'react-native';
+import { useRouter } from 'expo-router';
+import { Screen, Card, C, Header } from '@/components/ui';
 
-export default function Index(){
- const [target,setTarget]=useState<string | null>(null);
- useEffect(()=>{(async()=>{const license=await SecureStore.getItemAsync('smartvibe_license_active'); const risk=await SecureStore.getItemAsync('smartvibe_risk_accepted'); setTarget(license!=='1'?'/license':risk!=='1'?'/risk':'/auth');})().catch(()=>setTarget('/license'));},[]);
- return target?<Redirect href={target as any}/>:null;
+export default function Welcome() {
+  const router = useRouter();
+  return <Screen><View style={{ flex: 1, justifyContent: 'center' }}>
+    <Header title="SmartVibe Trading Network" subtitle="Live trading intelligence and secure account access." />
+    <Card elevated>
+      <Text style={{ fontSize: 26, fontWeight: '900', color: C.ink }}>Welcome</Text>
+      <Text style={{ color: C.muted, marginTop: 8, lineHeight: 21 }}>Choose your secure access portal.</Text>
+      <Pressable onPress={() => router.push('/auth')} style={{ marginTop: 20, padding: 16, borderRadius: 14, backgroundColor: C.blue }}><Text style={{ textAlign: 'center', color: '#fff', fontWeight: '900', fontSize: 16 }}>Client Portal</Text></Pressable>
+      <Pressable onPress={() => router.push('/admin')} style={{ marginTop: 10, padding: 16, borderRadius: 14, borderWidth: 1, borderColor: C.border, backgroundColor: C.surface }}><Text style={{ textAlign: 'center', color: C.ink, fontWeight: '900', fontSize: 16 }}>Administration Portal</Text></Pressable>
+    </Card>
+  </View></Screen>;
 }
