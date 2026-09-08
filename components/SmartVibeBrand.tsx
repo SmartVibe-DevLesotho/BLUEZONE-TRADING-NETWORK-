@@ -1,0 +1,8 @@
+import React from 'react';
+import { SvgXml } from 'react-native-svg';
+
+const OFFICIAL_SMARTVIBE_LOGO = `<svg width="1400" height="404" viewBox="0 0 900 260" xmlns="http://www.w3.org/2000/svg"><defs><style>.wordmark{font-family:Poppins,'Segoe UI',Arial,sans-serif;font-weight:800}.sub{font-family:Poppins,'Segoe UI',Arial,sans-serif;font-weight:600}</style><linearGradient id="markGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#35F2FF"/><stop offset="52%" stop-color="#0877F9"/><stop offset="100%" stop-color="#06162D"/></linearGradient><linearGradient id="nodeGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#FFF51A"/><stop offset="50%" stop-color="#FFC400"/><stop offset="100%" stop-color="#FF5A00"/></linearGradient><linearGradient id="vibeGrad" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#35F2FF"/><stop offset="48%" stop-color="#0877F9"/><stop offset="100%" stop-color="#83FF00"/></linearGradient></defs><g transform="translate(20,30) scale(1.5)"><path d="M30,20 L90,20 L60,55 L90,55 L45,100 L15,65 L45,65 Z" fill="url(#markGrad)"/><rect x="86" y="8" width="14" height="14" rx="3" fill="url(#nodeGrad)"/></g><text x="245" y="150" class="wordmark" font-size="92" letter-spacing="-2"><tspan fill="#FFFFFF">SMART</tspan><tspan fill="url(#vibeGrad)">VIBE</tspan></text><text x="248" y="196" class="sub" font-size="30" letter-spacing="7" fill="#16CFFF">COMPUTER SOLUTIONS</text></svg>`;
+
+export function SmartVibeLogo({ width = 300, height = 90 }: { width?: number; height?: number }) {
+  return <SvgXml xml={OFFICIAL_SMARTVIBE_LOGO} width={width} height={height} />;
+}
