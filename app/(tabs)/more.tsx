@@ -13,6 +13,7 @@ export default function More() {
   return <Screen><ScrollView showsVerticalScrollIndicator={false}>
     <Header title="More" subtitle="Tools, education and account resources." />
     <Card elevated><View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}><Text style={{ fontWeight: '900', fontSize: 19, color: C.ink }}>BlueZone Trading Network</Text><Badge label="LIVE" tone="positive" /></View><Text style={{ color: C.muted, marginTop: 9, lineHeight: 22 }}>Real-market monitoring, consensus analysis, trading education and broker connectivity. BlueZone does not manufacture prices or trading results.</Text></Card>
+    <Button title="SmartVibe Pro Premium — A & V" onPress={() => router.push('/education')} />
     <Button title="Open AI Assistant" onPress={() => router.push('/ai')} />
     {items.map(([title, detail]) => <View key={title} style={{ paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: C.border }}><Text style={{ fontWeight: '900', fontSize: 16, color: C.ink }}>{title}</Text><Text style={{ color: C.muted, marginTop: 5, lineHeight: 20 }}>{detail}</Text></View>)}
   </ScrollView></Screen>;
