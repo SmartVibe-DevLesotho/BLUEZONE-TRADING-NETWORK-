@@ -1,4 +1,4 @@
--- BlueZone Trading Network — Supabase schema
+-- SmartVibe Trading Network — Supabase schema
 create extension if not exists pgcrypto;
 
 create table if not exists public.profiles (
@@ -29,11 +29,11 @@ create table if not exists public.user_licenses (
 create table if not exists public.user_preferences (
   user_id uuid primary key references auth.users(id) on delete cascade,
   selected_instrument text not null default 'XAUUSD',
-  selected_strategy text not null default 'CRT Range Reversal',
+  selected_strategy text not null default 'SmartVibe Trading Network',
   selected_session text not null default 'London',
   selected_style text not null default 'Day Trading',
-  consensus_threshold integer not null default 6 check (consensus_threshold in (4,6,8)),
-  paper_trading boolean not null default true,
+  consensus_threshold integer not null default 8 check (consensus_threshold in (4,6,8)),
+  paper_trading boolean not null default false,
   updated_at timestamptz not null default now()
 );
 
@@ -110,7 +110,6 @@ create policy "mt5 own row" on public.mt5_connections for all using (auth.uid() 
 create policy "own license links" on public.user_licenses for select using (auth.uid() = user_id);
 create policy "signals readable" on public.signals for select using (true);
 
--- License records themselves remain private; activation is performed by Edge Function.
 revoke all on public.licenses from anon, authenticated;
 
 create or replace function public.handle_new_user()
