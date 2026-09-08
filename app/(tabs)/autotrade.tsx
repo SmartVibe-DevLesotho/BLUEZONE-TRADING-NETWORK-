@@ -7,38 +7,28 @@ import { instruments } from '@/instruments';
 
 const sessions = ['Sydney', 'Tokyo', 'London', 'New York'];
 const classes = ['Forex', 'Metals', 'Crypto', 'Indices', 'Deriv'] as const;
-
-function Choice({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
-  return <Pressable onPress={onPress} style={{ paddingVertical: 9, paddingHorizontal: 11, borderRadius: 12, borderWidth: 1, borderColor: active ? C.blue : C.border, backgroundColor: active ? C.blueSoft : C.surface }}><Text style={{ fontWeight: '800', color: active ? C.blue : C.ink }}>{label}</Text></Pressable>;
-}
+function Choice({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) { return <Pressable onPress={onPress} style={{ paddingVertical: 9, paddingHorizontal: 11, borderRadius: 12, borderWidth: 1, borderColor: active ? C.blue : C.border, backgroundColor: active ? C.blueSoft : C.surface }}><Text style={{ fontWeight: '800', color: active ? C.blue : C.ink }}>{label}</Text></Pressable>; }
 
 export default function AutoTrade() {
   const { selectedInstrument, setSelectedInstrument, selectedSession, setSelectedSession, selectedStyle, consensusThreshold } = useTrading();
   const [assetClass, setAssetClass] = useState<(typeof classes)[number]>(selectedInstrument.class);
-  const [signals, setSignals] = useState<ConsensusSignal[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const load = useCallback(async () => {
-    setError(''); setLoading(true);
-    try {
-      const result = await getConsensusSignals({ symbols: [selectedInstrument.symbol], threshold: consensusThreshold, session: selectedSession, style: selectedStyle });
-      setSignals(result.signals ?? []);
-    } catch (e: any) { setSignals([]); setError(e?.message ?? 'Unable to load live SmartVibe Trading Network analysis.'); }
-    finally { setLoading(false); }
-  }, [selectedInstrument.symbol, consensusThreshold, selectedSession, selectedStyle]);
+  const [signals, setSignals] = useState<ConsensusSignal[]>([]); const [loading, setLoading] = useState(true); const [error, setError] = useState('');
+  const [quota, setQuota] = useState<{plan:string;dailySignalLimit:number;signalsRemainingToday:number}|null>(null);
+  const load = useCallback(async () => { setError(''); setLoading(true); try { const result = await getConsensusSignals({ symbols: [selectedInstrument.symbol], threshold: consensusThreshold, session: selectedSession, style: selectedStyle }); setSignals(result.signals ?? []); setQuota(result.subscription ?? null); } catch (e: any) { setSignals([]); setError(e?.message ?? 'Unable to load live SmartVibe Trading Network analysis.'); } finally { setLoading(false); } }, [selectedInstrument.symbol, consensusThreshold, selectedSession, selectedStyle]);
   useEffect(() => { load(); }, [load]);
+  useEffect(() => { setAssetClass(selectedInstrument.class); }, [selectedInstrument.class]);
   const visible = instruments.filter(i => i.class === assetClass).slice(0, 30);
-
   return <Screen><ScrollView showsVerticalScrollIndicator={false}>
     <Header title="SmartVibe Trading Network" subtitle="Live analysis from the SmartVibe Trading Network methodology." right={<Badge label="LIVE" tone="positive" />} />
     <Card elevated><Text style={{ fontWeight: '900', fontSize: 18 }}>SmartVibe Trading Network</Text><Text style={{ color: C.muted, marginTop: 5, lineHeight: 20 }}>One canonical methodology controls every BUY and SELL signal. Supporting market-structure, liquidity, price-action and confirmation mechanics operate behind the scenes only to validate the SmartVibe setup.</Text>
+      {quota ? <View style={{ marginTop: 14, padding: 12, borderRadius: 12, backgroundColor: C.surface, borderWidth: 1, borderColor: C.border }}><Text style={{ fontWeight: '900', color: C.ink }}>{quota.plan} subscription</Text><Text style={{ color: C.muted, marginTop: 4 }}>{quota.signalsRemainingToday} of {quota.dailySignalLimit} signals remaining today</Text></View> : null}
       <Text style={{ fontWeight: '900', marginTop: 16 }}>Asset class</Text><View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>{classes.map(c => <Choice key={c} label={c} active={c === assetClass} onPress={() => setAssetClass(c)} />)}</View>
       <Text style={{ fontWeight: '900', marginTop: 16 }}>Instrument</Text><View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>{visible.map(i => <Choice key={i.symbol} label={i.symbol} active={i.symbol === selectedInstrument.symbol} onPress={() => setSelectedInstrument(i)} />)}</View>
       <Text style={{ fontWeight: '900', marginTop: 16 }}>Session</Text><View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>{sessions.map(s => <Choice key={s} label={s} active={s === selectedSession} onPress={() => setSelectedSession(s)} />)}</View>
     </Card>
     {loading ? <LoadingState label="Requesting live SmartVibe Trading Network analysis…" /> : null}
     {error ? <Card><Badge label="PROVIDER ERROR" tone="negative" /><Text style={{ color: C.red, marginTop: 8, lineHeight: 20 }}>{error}</Text></Card> : null}
-    {!loading && !error && signals.length === 0 ? <Card><Badge label="WAIT" tone="neutral" /><Text style={{ fontWeight: '900', fontSize: 20, marginTop: 8 }}>No qualifying setup</Text><Text style={{ color: C.muted, marginTop: 5, lineHeight: 20 }}>The SmartVibe Trading Network methodology has not confirmed a valid setup.</Text></Card> : null}
-    {signals.map(signal => <Card key={`${signal.symbol}-${signal.direction}-${signal.score}`} elevated><View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}><Badge label={signal.direction} tone={signal.direction === 'BUY' ? 'positive' : 'negative'} /><Badge label="CONFIRMED" tone="positive" /></View><Text style={{ fontSize: 23, fontWeight: '900', color: C.ink, marginTop: 9 }}>{signal.symbol}</Text><View style={{ marginTop: 12, gap: 5 }}><Text style={{ color: C.slate }}>Entry <Text style={{ fontWeight: '900', color: C.ink }}>{signal.entry}</Text></Text><Text style={{ color: C.slate }}>Stop loss <Text style={{ fontWeight: '900', color: C.ink }}>{signal.sl}</Text></Text><Text style={{ color: C.slate }}>Target <Text style={{ fontWeight: '900', color: C.ink }}>{signal.tp ?? 'Structural continuation'}</Text></Text></View><Text style={{ color: C.muted, marginTop: 10, lineHeight: 19 }}>SmartVibe Trading Network confirmation</Text><Text style={{ color: C.muted, fontSize: 12, marginTop: 10 }}>Analysis only — no broker order is placed by this screen.</Text></Card>)}
+    {!loading && !error && signals.length === 0 ? <Card><Badge label="WAIT" tone="neutral" /><Text style={{ fontWeight: '900', fontSize: 20, marginTop: 8 }}>No qualifying setup</Text><Text style={{ color: C.muted, marginTop: 5, lineHeight: 20 }}>The SmartVibe Trading Network methodology has not confirmed a valid setup. If your daily allowance is exhausted, the server will also enforce WAIT.</Text></Card> : null}
+    {signals.map(signal => <Card key={`${signal.symbol}-${signal.direction}-${signal.score}`} elevated><View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}><Badge label={signal.direction} tone={signal.direction === 'BUY' ? 'positive' : 'negative'} /><Badge label="CONFIRMED" tone="positive" /></View><Text style={{ fontSize: 23, fontWeight: '900', color: C.ink, marginTop: 9 }}>{signal.symbol}</Text><View style={{ marginTop: 12, gap: 5 }}><Text style={{ color: C.slate }}>Entry <Text style={{ fontWeight: '900', color: C.ink }}>{signal.entry}</Text></Text><Text style={{ color: C.slate }}>Stop loss <Text style={{ fontWeight: '900', color: C.ink }}>{signal.sl}</Text></Text><Text style={{ color: C.slate }}>Initial structural target <Text style={{ fontWeight: '900', color: C.ink }}>{signal.tp ?? 'Next major structure'}</Text></Text></View><Text style={{ color: C.muted, marginTop: 10, lineHeight: 19 }}>150–200 pips is a management milestone, not a profit cap. The runner remains active while SmartVibe structure and methodology remain valid.</Text><Text style={{ color: C.muted, fontSize: 12, marginTop: 10 }}>Analysis only — no broker order is placed by this screen.</Text></Card>)}
   </ScrollView></Screen>;
 }
