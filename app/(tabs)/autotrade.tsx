@@ -13,7 +13,7 @@ function Choice({ label, active, onPress }: { label: string; active: boolean; on
 }
 
 export default function AutoTrade() {
-  const { selectedInstrument, setSelectedInstrument, selectedSession, selectedStyle, consensusThreshold } = useTrading();
+  const { selectedInstrument, setSelectedInstrument, selectedSession, setSelectedSession, selectedStyle, consensusThreshold } = useTrading();
   const [assetClass, setAssetClass] = useState<(typeof classes)[number]>(selectedInstrument.class);
   const [signals, setSignals] = useState<ConsensusSignal[]>([]);
   const [loading, setLoading] = useState(true);
@@ -34,7 +34,7 @@ export default function AutoTrade() {
     <Card elevated><Text style={{ fontWeight: '900', fontSize: 18 }}>SmartVibe Trading Network</Text><Text style={{ color: C.muted, marginTop: 5, lineHeight: 20 }}>One canonical methodology controls every BUY and SELL signal. Supporting market-structure, liquidity, price-action and confirmation mechanics operate behind the scenes only to validate the SmartVibe setup.</Text>
       <Text style={{ fontWeight: '900', marginTop: 16 }}>Asset class</Text><View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>{classes.map(c => <Choice key={c} label={c} active={c === assetClass} onPress={() => setAssetClass(c)} />)}</View>
       <Text style={{ fontWeight: '900', marginTop: 16 }}>Instrument</Text><View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>{visible.map(i => <Choice key={i.symbol} label={i.symbol} active={i.symbol === selectedInstrument.symbol} onPress={() => setSelectedInstrument(i)} />)}</View>
-      <Text style={{ fontWeight: '900', marginTop: 16 }}>Session</Text><View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>{sessions.map(s => <Choice key={s} label={s} active={s === selectedSession} onPress={() => {}} />)}</View>
+      <Text style={{ fontWeight: '900', marginTop: 16 }}>Session</Text><View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>{sessions.map(s => <Choice key={s} label={s} active={s === selectedSession} onPress={() => setSelectedSession(s)} />)}</View>
     </Card>
     {loading ? <LoadingState label="Requesting live SmartVibe Trading Network analysis…" /> : null}
     {error ? <Card><Badge label="PROVIDER ERROR" tone="negative" /><Text style={{ color: C.red, marginTop: 8, lineHeight: 20 }}>{error}</Text></Card> : null}
