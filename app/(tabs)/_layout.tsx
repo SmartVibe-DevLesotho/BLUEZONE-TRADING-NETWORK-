@@ -4,6 +4,8 @@ import { ActivityIndicator, View } from 'react-native';
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
+import { validateLicense } from '@/lib/backend';
+import { getDeviceId } from '@/lib/device';
 import { C } from '@/components/ui';
 
 const screens = [
@@ -20,9 +22,17 @@ export default function TabsLayout() {
   useEffect(() => {
     let active = true;
     (async () => {
-      const { data } = await supabase?.auth.getSession() ?? { data: { session: null } };
-      if (!active) return;
-      if (!data.session) router.replace('/auth'); else setReady(true);
+      try {
+        const { data } = await supabase?.auth.getSession() ?? { data: { session: null } };
+        if (!active) return;
+        if (!data.session) { router.replace('/auth'); return; }
+        const deviceId = await getDeviceId();
+        const license = await validateLicense({ action: 'status', deviceId });
+        if (!license.valid) { router.replace('/license'); return; }
+        setReady(true);
+      } catch {
+        if (active) router.replace('/license');
+      }
     })();
     return () => { active = false; };
   }, [router]);
