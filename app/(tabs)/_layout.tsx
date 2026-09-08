@@ -15,11 +15,15 @@ const screens = [
   ['more', 'More', 'menu'],
 ] as const;
 
+// Render is a QA-only preview environment. Native production remains license-gated.
+const previewMode = process.env.EXPO_PUBLIC_PREVIEW_MODE === 'true';
+
 export default function TabsLayout() {
   const router = useRouter();
-  const [ready, setReady] = useState(false);
+  const [ready, setReady] = useState(previewMode);
 
   useEffect(() => {
+    if (previewMode) return;
     let active = true;
     (async () => {
       try {
