@@ -19,10 +19,13 @@ const TradingContext = createContext<TradingContextValue | null>(null);
 
 export function TradingProvider({ children }: { children: React.ReactNode }) {
   const [selectedInstrument, setSelectedInstrument] = useState(fallback);
-  const [selectedStrategy, setSelectedStrategy] = useState('CRT Range Reversal');
+  // The application has one canonical, user-facing methodology.
+  // Supporting mechanics remain internal to the signal engine and are never selected here.
+  const [selectedStrategy, setSelectedStrategy] = useState('SmartVibe Trading Network');
   const [selectedSession, setSelectedSession] = useState('London');
   const [selectedStyle, setSelectedStyle] = useState('Day Trading');
-  const [consensusThreshold, setConsensusThreshold] = useState(6);
+  // Retained for backend compatibility; the canonical engine owns the final qualification.
+  const [consensusThreshold, setConsensusThreshold] = useState(8);
 
   return (
     <TradingContext.Provider value={{
