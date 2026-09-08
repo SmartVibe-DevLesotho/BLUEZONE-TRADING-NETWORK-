@@ -13,5 +13,5 @@ export type LicenseValidation = { valid: boolean; message: string; expiresAt?: s
 
 export const getMarketQuotes = (symbols: string[]) => invokeFunction<{quotes: MarketQuote[]}>('market-data', { symbols });
 export const getConsensusSignals = (input: {symbols: string[]; threshold: number; session: string; style: string}) => invokeFunction<{signals: ConsensusSignal[]}>('consensus-signals', input);
-export const validateLicense = (input: {token: string; action: 'activate'|'status'; deviceId: string}) => invokeFunction<LicenseValidation>('license-validate', input);
+export const validateLicense = (input: {token?: string; action: 'activate'|'status'; deviceId: string}) => invokeFunction<LicenseValidation>('license-validate', input);
 export const sendAIMessage = (message: string, context?: unknown) => invokeFunction<{reply: string; status?: string}>('ai-chat', { message, context });
