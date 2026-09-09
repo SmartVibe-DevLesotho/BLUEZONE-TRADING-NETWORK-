@@ -12,11 +12,13 @@ function ResultRow({ label, value }: { label: string; value: string }) {
 export default function Scanner() {
   const router = useRouter();
   const [imageUri, setImageUri] = useState('');
+  const [imageBase64, setImageBase64] = useState('');
+  const [imageMimeType, setImageMimeType] = useState('image/jpeg');
   const [result, setResult] = useState<ChartScanResult | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
-  async function chooseAndScan() {
+  async function chooseChart() {
     setError('');
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) { Alert.alert('Photo permission required', 'SmartVibe needs access to the chart screenshot you choose.'); return; }
@@ -24,10 +26,19 @@ export default function Scanner() {
     if (picked.canceled || !picked.assets?.[0]?.base64) return;
     const asset = picked.assets[0];
     setImageUri(asset.uri);
+    setImageBase64(asset.base64);
+    setImageMimeType(asset.mimeType || 'image/jpeg');
+    setResult(null);
+    setError('');
+  }
+
+  async function scanSelectedChart() {
+    if (!imageBase64 || busy) return;
+    setError('');
     setResult(null);
     setBusy(true);
     try {
-      const scan = await scanSmartVibeChart(asset.base64!, asset.mimeType || 'image/jpeg');
+      const scan = await scanSmartVibeChart(imageBase64, imageMimeType);
       setResult(scan);
     } catch (e: any) {
       setError(e?.message ?? 'The SmartVibe scanner could not analyze this screenshot.');
@@ -37,13 +48,14 @@ export default function Scanner() {
   return <Screen><ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 30 }}>
     <Header title="SmartVibe Scanner" subtitle="Upload a chart screenshot from Deriv, MT5, TradingView or another broker." />
     <Card elevated>
-      <Badge label="SMARTVIBE METHODOLOGY" tone="blue" />
+      <Badge label="CANONICAL SMARTVIBE METHODOLOGY" tone="blue" />
       <Text style={{ color: C.ink, fontSize: 20, fontWeight: '900', marginTop: 10 }}>Instrument-locked chart analysis</Text>
       <Text style={{ color: C.muted, lineHeight: 21, marginTop: 7 }}>The scanner reads the screenshot itself first. It must identify the instrument shown before giving feedback. A Gold/XAUUSD screenshot is analyzed as Gold — it is never silently treated as Nasdaq. If the symbol is unreadable, SmartVibe reports that instead of inventing one.</Text>
     </Card>
     {imageUri ? <Card><Image source={{ uri: imageUri }} style={{ width: '100%', height: 250, borderRadius: 14, backgroundColor: C.navy }} resizeMode="contain" /></Card> : null}
-    <Button title={imageUri ? 'Upload Another Screenshot' : 'Upload Chart Screenshot'} onPress={chooseAndScan} disabled={busy} />
-    {busy ? <LoadingState label="SmartVibe is reading the chart and checking the methodology…" /> : null}
+    <Button title={imageUri ? 'Replace Chart Screenshot' : 'Upload Chart Screenshot'} onPress={chooseChart} disabled={busy} />
+    {imageBase64 && !busy ? <Button title="SCAN CHART WITH SMARTVIBE AI" onPress={scanSelectedChart} disabled={busy} /> : null}
+    {busy ? <LoadingState label="SmartVibe is reading the chart and checking the Canonical SmartVibe Methodology…" /> : null}
     {error ? <Card><Text style={{ color: C.red, fontWeight: '900' }}>Scanner error</Text><Text style={{ color: C.muted, marginTop: 6, lineHeight: 20 }}>{error}</Text></Card> : null}
     {result ? <>
       <Card elevated>
