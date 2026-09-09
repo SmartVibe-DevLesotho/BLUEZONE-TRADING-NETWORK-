@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { Alert, Image, ScrollView, Text, View } from 'react-native';
-import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
+import * as ImagePicker from 'expo-image-picker';
 import { Button, Card, C, Header, Badge, LoadingState, Screen } from '@/components/ui';
 import { scanSmartVibeChart, ChartScanResult } from '@/lib/backend';
 
 function ResultRow({ label, value }: { label: string; value: string }) {
-  return <View style={{ paddingVertical: 11, borderBottomWidth: 1, borderBottomColor: C.border }}><Text style={{ color: C.muted, fontSize: 10, fontWeight: '900', letterSpacing: 1 }}>{label}</Text><Text style={{ color: C.ink, marginTop: 4, lineHeight: 20 }}>{value}</Text></View>;
+  return <View style={{ paddingVertical: 11, borderBottomWidth: 1, borderBottomColor: C.border }}><Text style={{ color: C.muted, fontSize: 10, fontWeight: '900', letterSpacing: 1 }}>{label}</Text><Text style={{ color: C.ink, marginTop: 4, lineHeight: 20 }}>{value || 'Not available'}</Text></View>;
 }
 
 export default function Scanner() {
@@ -52,6 +52,7 @@ export default function Scanner() {
     setBusy(true);
     try {
       const scan = await scanSmartVibeChart(imageBase64, imageMimeType);
+      if (!scan || typeof scan !== 'object') throw new Error('The scanner returned an invalid response. Please try again.');
       setResult(scan);
     } catch (e: any) {
       setError(e?.message ?? 'The SmartVibe scanner could not analyze this screenshot.');
@@ -72,24 +73,24 @@ export default function Scanner() {
     {error ? <Card><Text style={{ color: C.red, fontWeight: '900' }}>Scanner error</Text><Text style={{ color: C.muted, marginTop: 6, lineHeight: 20 }}>{error}</Text></Card> : null}
     {result ? <>
       <Card elevated>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}><Text style={{ color: C.ink, fontSize: 21, fontWeight: '900' }}>{result.detectedInstrumentLabel || result.detectedInstrument || 'Instrument not confirmed'}</Text><Badge label={result.direction} tone={result.direction === 'BUY' ? 'positive' : result.direction === 'SELL' ? 'negative' : 'neutral'} /></View>
-        <Text style={{ color: C.muted, marginTop: 7 }}>Confidence: {Math.round(result.confidence)}% • Broker: {result.broker || 'Not identifiable'} • Timeframe: {result.timeframe || 'Not identifiable'}</Text>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}><Text style={{ color: C.ink, fontSize: 21, fontWeight: '900' }}>{result.detectedInstrumentLabel || result.detectedInstrument || 'Instrument not confirmed'}</Text><Badge label={result.direction || 'WAIT'} tone={result.direction === 'BUY' ? 'positive' : result.direction === 'SELL' ? 'negative' : 'neutral'} /></View>
+        <Text style={{ color: C.muted, marginTop: 7 }}>Confidence: {Number.isFinite(result.confidence) ? Math.round(result.confidence) : 0}% • Broker: {result.broker || 'Not identifiable'} • Timeframe: {result.timeframe || 'Not identifiable'}</Text>
         {!result.chartReadable ? <Text style={{ color: C.gold, marginTop: 10, lineHeight: 20 }}>The screenshot is not sufficiently readable for a reliable methodology decision.</Text> : null}
-        <Text style={{ color: C.ink, marginTop: 13, lineHeight: 22 }}>{result.feedback}</Text>
+        <Text style={{ color: C.ink, marginTop: 13, lineHeight: 22 }}>{result.feedback || 'No methodology feedback was returned.'}</Text>
       </Card>
       <Card>
         <Text style={{ color: C.cyan, fontWeight: '900', letterSpacing: 1 }}>METHODOLOGY CHECK</Text>
-        <ResultRow label="HIGHER-TIMEFRAME DIRECTION" value={result.methodology.higherTimeframeDirection} />
-        <ResultRow label="M30 CONFIRMATION" value={result.methodology.m30Confirmation} />
-        <ResultRow label="SUPPORT / RESISTANCE / RBS" value={result.methodology.resistanceSupportRbs} />
-        <ResultRow label="ENGULFING" value={result.methodology.engulfing} />
-        <ResultRow label="M1 / LOWER-TIMEFRAME CONFIRMATION" value={result.methodology.lowerTimeframeConfirmation} />
-        <ResultRow label="TRENDLINE / PRICE ACTION" value={result.methodology.trendlinePriceAction} />
-        <ResultRow label="STRUCTURAL INVALIDATION" value={result.methodology.structuralInvalidation} />
-        <ResultRow label="CONTINUATION MANAGEMENT" value={result.methodology.continuationManagement} />
+        <ResultRow label="HIGHER-TIMEFRAME DIRECTION" value={result.methodology?.higherTimeframeDirection || ''} />
+        <ResultRow label="M30 CONFIRMATION" value={result.methodology?.m30Confirmation || ''} />
+        <ResultRow label="SUPPORT / RESISTANCE / RBS" value={result.methodology?.resistanceSupportRbs || ''} />
+        <ResultRow label="ENGULFING" value={result.methodology?.engulfing || ''} />
+        <ResultRow label="M1 / LOWER-TIMEFRAME CONFIRMATION" value={result.methodology?.lowerTimeframeConfirmation || ''} />
+        <ResultRow label="TRENDLINE / PRICE ACTION" value={result.methodology?.trendlinePriceAction || ''} />
+        <ResultRow label="STRUCTURAL INVALIDATION" value={result.methodology?.structuralInvalidation || ''} />
+        <ResultRow label="CONTINUATION MANAGEMENT" value={result.methodology?.continuationManagement || ''} />
       </Card>
-      {result.warnings.length ? <Card><Text style={{ color: C.gold, fontWeight: '900' }}>WARNINGS</Text>{result.warnings.map((warning, i) => <Text key={i} style={{ color: C.muted, marginTop: 7, lineHeight: 20 }}>• {warning}</Text>)}</Card> : null}
-      {result.evidence.length ? <Card><Text style={{ color: C.cyan, fontWeight: '900' }}>SCREENSHOT EVIDENCE</Text>{result.evidence.map((item, i) => <Text key={i} style={{ color: C.muted, marginTop: 7, lineHeight: 20 }}>• {item}</Text>)}</Card> : null}
+      {Array.isArray(result.warnings) && result.warnings.length ? <Card><Text style={{ color: C.gold, fontWeight: '900' }}>WARNINGS</Text>{result.warnings.map((warning, i) => <Text key={i} style={{ color: C.muted, marginTop: 7, lineHeight: 20 }}>• {warning}</Text>)}</Card> : null}
+      {Array.isArray(result.evidence) && result.evidence.length ? <Card><Text style={{ color: C.cyan, fontWeight: '900' }}>SCREENSHOT EVIDENCE</Text>{result.evidence.map((item, i) => <Text key={i} style={{ color: C.muted, marginTop: 7, lineHeight: 20 }}>• {item}</Text>)}</Card> : null}
     </> : null}
     <Text style={{ color: C.muted, textAlign: 'center', fontSize: 11, marginTop: 10 }}>Credit: SmartVibe Computer Solutions</Text>
     <Button title="Back" variant="secondary" onPress={() => router.back()} />
