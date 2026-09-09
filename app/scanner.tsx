@@ -19,17 +19,30 @@ export default function Scanner() {
   const [error, setError] = useState('');
 
   async function chooseChart() {
+    if (busy) return;
     setError('');
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) { Alert.alert('Photo permission required', 'SmartVibe needs access to the chart screenshot you choose.'); return; }
-    const picked = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: false, quality: 0.88, base64: true });
-    if (picked.canceled || !picked.assets?.[0]?.base64) return;
-    const asset = picked.assets[0];
-    setImageUri(asset.uri);
-    setImageBase64(asset.base64);
-    setImageMimeType(asset.mimeType || 'image/jpeg');
-    setResult(null);
-    setError('');
+    try {
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert('Photo permission required', 'SmartVibe needs access to the chart screenshot you choose.');
+        return;
+      }
+      const picked = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: false, quality: 0.88, base64: true });
+      if (picked.canceled || !picked.assets?.[0]) return;
+      const asset = picked.assets[0];
+      const base64 = asset.base64;
+      if (!base64) {
+        setError('The selected image could not be read. Please choose another chart screenshot.');
+        return;
+      }
+      setImageUri(asset.uri);
+      setImageBase64(base64);
+      setImageMimeType(asset.mimeType || 'image/jpeg');
+      setResult(null);
+      setError('');
+    } catch (e: any) {
+      setError(e?.message ?? 'The chart image could not be selected. Please try again.');
+    }
   }
 
   async function scanSelectedChart() {
