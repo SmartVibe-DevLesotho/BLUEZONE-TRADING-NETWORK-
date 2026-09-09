@@ -4,56 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Screen, Card, C } from '@/components/ui';
 import { SmartVibeLogo } from '@/components/SmartVibeBrand';
 
-const WHATSAPP_URL = 'https://wa.me/26662649248?text=Hello%20SmartVibe%20Support.%20I%20would%20like%20to%20request%20my%20activation%20token.';
-
-function Action({ icon, title, subtitle, onPress, dark = false }: { icon: any; title: string; subtitle: string; onPress: () => void; dark?: boolean }) {
-  return <Pressable onPress={onPress} style={({ pressed }) => ({ flex: 1, minHeight: 94, borderRadius: 18, padding: 16, backgroundColor: dark ? C.ink : C.green, borderWidth: 1, borderColor: dark ? C.cyan : C.green, opacity: pressed ? 0.82 : 1 })}>
-    <Ionicons name={icon} size={22} color="#fff" />
-    <Text style={{ color: '#fff', fontWeight: '900', fontSize: 15, marginTop: 10 }}>{title}</Text>
-    <Text style={{ color: '#fff', opacity: 0.8, fontSize: 11, marginTop: 3 }}>{subtitle}</Text>
-  </Pressable>;
-}
-
-function Feature({ icon, title, text }: { icon: any; title: string; text: string }) {
-  return <View style={{ flex: 1, minWidth: '46%', padding: 14, borderWidth: 1, borderColor: C.border, borderRadius: 16, backgroundColor: C.card }}>
-    <Ionicons name={icon} size={20} color={C.cyan} />
-    <Text style={{ color: C.ink, fontWeight: '900', fontSize: 14, marginTop: 9 }}>{title}</Text>
-    <Text style={{ color: C.muted, fontSize: 11, lineHeight: 17, marginTop: 4 }}>{text}</Text>
-  </View>;
-}
-
-export default function Welcome() {
-  const router = useRouter();
-  const openWhatsApp = async () => { try { await Linking.openURL(WHATSAPP_URL); } catch {} };
-
-  return <Screen><ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 28 }}>
-    <View style={{ alignItems: 'center', paddingTop: 8, paddingBottom: 20 }}><SmartVibeLogo width={310} height={93} /></View>
-    <View style={{ alignItems: 'center', paddingHorizontal: 8 }}>
-      <Text style={{ color: C.green, fontSize: 10, fontWeight: '900', letterSpacing: 2 }}>SMARTVIBE TRADING NETWORK</Text>
-      <Text style={{ color: C.ink, fontSize: 30, lineHeight: 35, fontWeight: '900', textAlign: 'center', marginTop: 8 }}>Trade with clarity.</Text>
-      <Text style={{ color: C.muted, fontSize: 14, lineHeight: 21, textAlign: 'center', marginTop: 9 }}>Market intelligence, structured analysis and intelligent assistance for disciplined trading.</Text>
-    </View>
-    <View style={{ flexDirection: 'row', gap: 10, marginTop: 22 }}>
-      <Action icon="logo-whatsapp" title="Get Access" subtitle="Request activation" onPress={openWhatsApp} />
-      <Action icon="sparkles" title="AI Assistant" subtitle="Ask SmartVibe" onPress={() => router.push('/ai')} dark />
-    </View>
-    <Pressable onPress={() => router.push('/(tabs)/markets')} style={({ pressed }) => ({ marginTop: 12, borderRadius: 18, padding: 17, backgroundColor: C.blue, borderWidth: 1, borderColor: C.cyan, opacity: pressed ? 0.84 : 1 })}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9 }}><Ionicons name="grid-outline" size={19} color="#fff" /><Text style={{ color: '#fff', fontWeight: '900', fontSize: 16 }}>Explore SmartVibe</Text></View>
-    </Pressable>
-    <Card elevated>
-      <Text style={{ color: C.ink, fontSize: 18, fontWeight: '900', marginBottom: 12 }}>Everything you need in one place</Text>
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
-        <Feature icon="pulse-outline" title="Live Markets" text="Monitor selected markets in real time." />
-        <Feature icon="trending-up-outline" title="Signals" text="SmartVibe market analysis and trade setups." />
-        <Feature icon="scan-outline" title="Chart Scanner" text="Analyse chart screenshots with SmartVibe." />
-        <Feature icon="book-outline" title="Education" text="Build stronger trading discipline." />
-      </View>
-    </Card>
-    <Card>
-      <Text style={{ fontSize: 18, fontWeight: '900', color: C.ink }}>Client access</Text>
-      <Text style={{ color: C.muted, marginTop: 5, lineHeight: 20 }}>Sign in to your SmartVibe account.</Text>
-      <Pressable onPress={() => router.push('/auth')} style={{ marginTop: 14, padding: 15, borderRadius: 14, borderWidth: 1, borderColor: C.border, backgroundColor: C.card }}><Text style={{ textAlign: 'center', color: C.ink, fontWeight: '900' }}>Client Sign In</Text></Pressable>
-    </Card>
-    <Text style={{ color: C.muted, textAlign: 'center', fontSize: 11, marginTop: 8 }}>SmartVibe Computer Solutions</Text>
-  </ScrollView></Screen>;
-}
+const WHATSAPP_URL = process.env.EXPO_PUBLIC_WHATSAPP_URL ?? 'https://wa.me/26662649248?text=Hello%20SmartVibe%20Support.%20I%20would%20like%20to%20request%20my%20activation%20token.';
+function Action({ icon, title, subtitle, onPress, dark = false }: { icon: any; title: string; subtitle: string; onPress: () => void; dark?: boolean }) { return <Pressable onPress={onPress} style={({ pressed }) => ({ flex: 1, minHeight: 94, borderRadius: 18, padding: 16, backgroundColor: dark ? C.ink : C.green, borderWidth: 1, borderColor: dark ? C.cyan : C.green, opacity: pressed ? 0.82 : 1 })}><Ionicons name={icon} size={22} color="#fff" /><Text style={{ color: '#fff', fontWeight: '900', fontSize: 15, marginTop: 10 }}>{title}</Text><Text style={{ color: '#fff', opacity: 0.8, fontSize: 11, marginTop: 3 }}>{subtitle}</Text></Pressable>; }
+function Feature({ icon, title, text }: { icon: any; title: string; text: string }) { return <View style={{ flex: 1, minWidth: '46%', padding: 14, borderWidth: 1, borderColor: C.border, borderRadius: 16, backgroundColor: C.card }}><Ionicons name={icon} size={20} color={C.cyan} /><Text style={{ color: C.ink, fontWeight: '900', fontSize: 14, marginTop: 9 }}>{title}</Text><Text style={{ color: C.muted, fontSize: 11, lineHeight: 17, marginTop: 4 }}>{text}</Text></View>; }
+export default function Welcome() { const router = useRouter(); const openWhatsApp = async () => { try { await Linking.openURL(WHATSAPP_URL); } catch {} }; return <Screen><ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 28 }}><View style={{ alignItems: 'center', paddingTop: 8, paddingBottom: 20 }}><SmartVibeLogo width={310} height={93} /></View><View style={{ alignItems: 'center', paddingHorizontal: 8 }}><Text style={{ color: C.green, fontSize: 10, fontWeight: '900', letterSpacing: 2 }}>SMARTVIBE TRADING NETWORK</Text><Text style={{ color: C.ink, fontSize: 30, lineHeight: 35, fontWeight: '900', textAlign: 'center', marginTop: 8 }}>Trade with clarity.</Text><Text style={{ color: C.muted, fontSize: 14, lineHeight: 21, textAlign: 'center', marginTop: 9 }}>Market intelligence, structured analysis and intelligent assistance for disciplined trading.</Text></View><View style={{ flexDirection: 'row', gap: 10, marginTop: 22 }}><Action icon="logo-whatsapp" title="Get Access" subtitle="Request activation" onPress={openWhatsApp} /><Action icon="sparkles" title="AI Assistant" subtitle="Ask SmartVibe" onPress={() => router.push('/ai')} dark /></View><Pressable onPress={() => router.push('/(tabs)/markets')} style={({ pressed }) => ({ marginTop: 12, borderRadius: 18, padding: 17, backgroundColor: C.blue, borderWidth: 1, borderColor: C.cyan, opacity: pressed ? 0.84 : 1 })}><View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9 }}><Ionicons name="grid-outline" size={19} color="#fff" /><Text style={{ color: '#fff', fontWeight: '900', fontSize: 16 }}>Explore SmartVibe</Text></View></Pressable><Card elevated><Text style={{ color: C.ink, fontSize: 18, fontWeight: '900', marginBottom: 12 }}>Everything you need in one place</Text><View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}><Feature icon="pulse-outline" title="Live Markets" text="Monitor selected markets in real time." /><Feature icon="trending-up-outline" title="Signals" text="SmartVibe market analysis and trade setups." /><Feature icon="scan-outline" title="Chart Scanner" text="Analyse chart screenshots with SmartVibe." /><Feature icon="book-outline" title="Education" text="Build stronger trading discipline." /></View></Card><Card><Text style={{ fontSize: 18, fontWeight: '900', color: C.ink }}>Client access</Text><Text style={{ color: C.muted, marginTop: 5, lineHeight: 20 }}>Sign in to your SmartVibe account.</Text><Pressable onPress={() => router.push('/auth')} style={{ marginTop: 14, padding: 15, borderRadius: 14, borderWidth: 1, borderColor: C.border, backgroundColor: C.card }}><Text style={{ textAlign: 'center', color: C.ink, fontWeight: '900' }}>Client Sign In</Text></Pressable></Card><Text style={{ color: C.muted, textAlign: 'center', fontSize: 11, marginTop: 8 }}>SmartVibe Computer Solutions</Text></ScrollView></Screen>; }
