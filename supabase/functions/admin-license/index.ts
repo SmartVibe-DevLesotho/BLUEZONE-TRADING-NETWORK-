@@ -1,14 +1,76 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.0';
-const cors={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'authorization, x-client-info, apikey, content-type','Access-Control-Allow-Methods':'POST, OPTIONS','Content-Type':'application/json'}; const json=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers:cors});
-function randomHex(bytes=18){const data=new Uint8Array(bytes);crypto.getRandomValues(data);return Array.from(data).map(b=>b.toString(16).padStart(2,'0')).join('').toUpperCase();}
-async function sha256(value:string){const digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(value));return Array.from(new Uint8Array(digest)).map(b=>b.toString(16).padStart(2,'0')).join('');}
-const db=()=>createClient(Deno.env.get('SUPABASE_URL')!,Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,{auth:{persistSession:false,autoRefreshToken:false}});
-Deno.serve(async(req)=>{if(req.method==='OPTIONS')return new Response('ok',{headers:cors});if(req.method!=='POST')return json({error:'Method not allowed.'},405);try{const auth=req.headers.get('Authorization');if(!auth?.startsWith('Bearer '))return json({error:'Authentication required.'},401);const supabase=db();const{data,error}=await supabase.auth.getUser(auth.slice(7));if(error||!data.user)return json({error:'Invalid session.'},401);const{data:owner,error:ownerError}=await supabase.from('platform_admins').select('user_id').eq('user_id',data.user.id).maybeSingle();if(ownerError)throw ownerError;if(!owner)return json({error:'Administration access denied.'},403);const body=await req.json().catch(()=>({}));
-if(body.action==='list'){const{data:licenses,error:e}=await supabase.from('licenses').select('id,label,plan_key,package_key,active,expires_at,max_activations,activation_count,issued_at,revoked_at,included_signals,used_signals,carryover_signals,carryover_credit_lsl,price_paid_lsl,renewal_of_license_id').eq('issued_by',data.user.id).order('issued_at',{ascending:false}).limit(100);if(e)throw e;return json({licenses:licenses??[]});}
-if(body.action==='revoke'){const id=typeof body.licenseId==='string'?body.licenseId.trim():'';if(!id)return json({error:'License record is required.'},400);const{data:revoked,error:e}=await supabase.from('licenses').update({active:false,revoked_at:new Date().toISOString(),updated_at:new Date().toISOString()}).eq('id',id).eq('issued_by',data.user.id).select('id').maybeSingle();if(e)throw e;return json({ok:Boolean(revoked),message:revoked?'Token revoked.':'Token not found.'});}
-if(body.action!=='issue'&&body.action!=='issue-renewal')return json({error:'Unsupported administration action.'},400);
-const packageKey=typeof body.packageKey==='string'?body.packageKey.trim():'';const{data:pkg,error:pkgError}=await supabase.from('smartvibe_subscription_packages').select('*').eq('package_key',packageKey).eq('active',true).maybeSingle();if(pkgError)throw pkgError;if(!pkg)return json({error:'Invalid subscription package.'},400);
-let carryoverSignals=0,carryoverCredit=0,renewalOf:null as string|null;
-if(body.action==='issue-renewal'){renewalOf=typeof body.previousLicenseId==='string'?body.previousLicenseId.trim():'';if(!renewalOf)return json({error:'Previous license is required for renewal.'},400);const{data:old,error:e}=await supabase.from('licenses').select('id,included_signals,used_signals,price_paid_lsl,package_key,active,expires_at').eq('id',renewalOf).eq('issued_by',data.user.id).maybeSingle();if(e)throw e;if(!old)return json({error:'Previous license not found.'},404);carryoverSignals=Math.max(0,(old.included_signals??0)-(old.used_signals??0));const oldPkg=old.package_key?await supabase.from('smartvibe_subscription_packages').select('price_lsl,included_signals').eq('package_key',old.package_key).maybeSingle():null;const oldPrice=Number(old.price_paid_lsl??oldPkg?.data?.price_lsl??0);const oldCount=Math.max(1,Number(old.included_signals??oldPkg?.data?.included_signals??1));carryoverCredit=carryoverSignals*(oldPrice/oldCount);}
-const amountDue=Math.max(0,Number(pkg.price_lsl)-carryoverCredit);const totalEntitlement=Number(pkg.included_signals)+carryoverSignals;const token=`SVTN-${randomHex()}`;const tokenHash=await sha256(token);const expiresAt=new Date(Date.now()+Number(pkg.duration_days)*86400000).toISOString();const{data:license,error:insertError}=await supabase.from('licenses').insert({token_hash:tokenHash,plan_key:pkg.plan_key,package_key:pkg.package_key,included_signals:totalEntitlement,used_signals:0,carryover_signals:carryoverSignals,carryover_credit_lsl:carryoverCredit,price_paid_lsl:amountDue,renewal_of_license_id:renewalOf,active:true,expires_at:expiresAt,max_activations:1,activation_count:0,issued_by:data.user.id,label:pkg.display_name,issued_at:new Date().toISOString(),updated_at:new Date().toISOString()}).select('id,plan_key,package_key,included_signals,expires_at,max_activations,carryover_signals,carryover_credit_lsl,price_paid_lsl,renewal_of_license_id').single();if(insertError)throw insertError;return json({token,package:{key:pkg.package_key,name:pkg.display_name,planKey:pkg.plan_key,priceLsl:Number(pkg.price_lsl),includedSignals:Number(pkg.included_signals),durationDays:Number(pkg.duration_days),scannerAccess:pkg.scanner_access,whatsappGroupAccess:pkg.whatsapp_group_access,allServicesAccess:pkg.all_services_access},renewal:{carryoverSignals,carryoverCreditLsl:Number(carryoverCredit.toFixed(2)),amountDueLsl:Number(amountDue.toFixed(2)),totalEntitlement},expiresAt,maxActivations:1,license});
-}catch(error){console.error(error);return json({error:'Secure administration service is temporarily unavailable.'},500);}});
+
+const cors = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Content-Type': 'application/json',
+};
+const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: cors });
+function randomHex(bytes = 18) { const data = new Uint8Array(bytes); crypto.getRandomValues(data); return Array.from(data).map((b) => b.toString(16).padStart(2, '0')).join('').toUpperCase(); }
+async function sha256(value: string) { const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value)); return Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, '0')).join(''); }
+const db = () => createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, { auth: { persistSession: false, autoRefreshToken: false } });
+
+Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
+  if (req.method !== 'POST') return json({ error: 'Method not allowed.' }, 405);
+  try {
+    const auth = req.headers.get('Authorization');
+    if (!auth?.startsWith('Bearer ')) return json({ error: 'Authentication required.' }, 401);
+    const supabase = db();
+    const { data, error } = await supabase.auth.getUser(auth.slice(7));
+    if (error || !data.user) return json({ error: 'Invalid session.' }, 401);
+    const { data: owner, error: ownerError } = await supabase.from('platform_admins').select('user_id').eq('user_id', data.user.id).maybeSingle();
+    if (ownerError) throw ownerError;
+    if (!owner) return json({ error: 'Administration access denied.' }, 403);
+    const body = await req.json().catch(() => ({}));
+
+    if (body.action === 'list') {
+      const { data: licenses, error: e } = await supabase.from('licenses').select('id,label,plan_key,package_key,active,expires_at,max_activations,activation_count,issued_at,revoked_at,included_signals,used_signals,carryover_signals,carryover_credit_lsl,price_paid_lsl,renewal_of_license_id').eq('issued_by', data.user.id).order('issued_at', { ascending: false }).limit(100);
+      if (e) throw e;
+      return json({ licenses: licenses ?? [] });
+    }
+
+    if (body.action === 'revoke') {
+      const id = typeof body.licenseId === 'string' ? body.licenseId.trim() : '';
+      if (!id) return json({ error: 'License record is required.' }, 400);
+      const { data: revoked, error: e } = await supabase.from('licenses').update({ active: false, revoked_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq('id', id).eq('issued_by', data.user.id).select('id').maybeSingle();
+      if (e) throw e;
+      return json({ ok: Boolean(revoked), message: revoked ? 'Token revoked.' : 'Token not found.' });
+    }
+
+    if (body.action !== 'issue' && body.action !== 'issue-renewal') return json({ error: 'Unsupported administration action.' }, 400);
+    const packageKey = typeof body.packageKey === 'string' ? body.packageKey.trim() : '';
+    const { data: pkg, error: pkgError } = await supabase.from('smartvibe_subscription_packages').select('*').eq('package_key', packageKey).eq('active', true).maybeSingle();
+    if (pkgError) throw pkgError;
+    if (!pkg) return json({ error: 'Invalid subscription package.' }, 400);
+
+    let carryoverSignals = 0;
+    let carryoverCredit = 0;
+    let renewalOf: string | null = null;
+    if (body.action === 'issue-renewal') {
+      renewalOf = typeof body.previousLicenseId === 'string' ? body.previousLicenseId.trim() : '';
+      if (!renewalOf) return json({ error: 'Previous license is required for renewal.' }, 400);
+      const { data: old, error: e } = await supabase.from('licenses').select('id,included_signals,used_signals,price_paid_lsl,package_key,active,expires_at').eq('id', renewalOf).eq('issued_by', data.user.id).maybeSingle();
+      if (e) throw e;
+      if (!old) return json({ error: 'Previous license not found.' }, 404);
+      carryoverSignals = Math.max(0, Number(old.included_signals ?? 0) - Number(old.used_signals ?? 0));
+      const oldPkg = old.package_key ? await supabase.from('smartvibe_subscription_packages').select('price_lsl,included_signals').eq('package_key', old.package_key).maybeSingle() : null;
+      const oldPrice = Number(old.price_paid_lsl ?? oldPkg?.data?.price_lsl ?? 0);
+      const oldCount = Math.max(1, Number(old.included_signals ?? oldPkg?.data?.included_signals ?? 1));
+      carryoverCredit = carryoverSignals * (oldPrice / oldCount);
+    }
+
+    const amountDue = Math.max(0, Number(pkg.price_lsl) - carryoverCredit);
+    const totalEntitlement = Number(pkg.included_signals) + carryoverSignals;
+    const token = `SVTN-${randomHex()}`;
+    const tokenHash = await sha256(token);
+    const expiresAt = new Date(Date.now() + Number(pkg.duration_days) * 86400000).toISOString();
+    const { data: license, error: insertError } = await supabase.from('licenses').insert({ token_hash: tokenHash, plan_key: pkg.plan_key, package_key: pkg.package_key, included_signals: totalEntitlement, used_signals: 0, carryover_signals: carryoverSignals, carryover_credit_lsl: carryoverCredit, price_paid_lsl: amountDue, renewal_of_license_id: renewalOf, active: true, expires_at: expiresAt, max_activations: 1, activation_count: 0, issued_by: data.user.id, label: pkg.display_name, issued_at: new Date().toISOString(), updated_at: new Date().toISOString() }).select('id,plan_key,package_key,included_signals,expires_at,max_activations,carryover_signals,carryover_credit_lsl,price_paid_lsl,renewal_of_license_id').single();
+    if (insertError) throw insertError;
+    return json({ token, package: { key: pkg.package_key, name: pkg.display_name, planKey: pkg.plan_key, priceLsl: Number(pkg.price_lsl), includedSignals: Number(pkg.included_signals), durationDays: Number(pkg.duration_days), scannerAccess: pkg.scanner_access, whatsappGroupAccess: pkg.whatsapp_group_access, allServicesAccess: pkg.all_services_access }, renewal: { carryoverSignals, carryoverCreditLsl: Number(carryoverCredit.toFixed(2)), amountDueLsl: Number(amountDue.toFixed(2)), totalEntitlement }, expiresAt, maxActivations: 1, license });
+  } catch (error) {
+    console.error(error);
+    return json({ error: 'Secure administration service is temporarily unavailable.' }, 500);
+  }
+});
