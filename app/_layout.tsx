@@ -1,6 +1,6 @@
 import React, { Component, ReactNode } from 'react';
-import { Pressable, Stack } from 'expo-router';
-import { Text, TextInput, View } from 'react-native';
+import { Stack } from 'expo-router';
+import { Pressable, Text, TextInput, View } from 'react-native';
 import { TradingProvider } from '@/context/TradingContext';
 import { C } from '@/components/ui';
 
