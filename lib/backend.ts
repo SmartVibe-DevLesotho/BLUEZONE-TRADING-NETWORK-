@@ -25,6 +25,7 @@ export type ConsensusSignal = {
 };
 export type SubscriptionQuota = { plan: string; packageKey?: string | null; packageName?: string | null; pricePaidLsl?: number; includedSignals: number; signalsUsed: number; signalsPending: number; signalsUnused: number; signalsRemaining: number; carryoverSignals: number; carryoverCreditLsl: number; scannerAccess?: boolean; whatsappGroupAccess?: boolean; allServicesAccess?: boolean };
 export type LicenseValidation = { valid: boolean; message: string; expiresAt?: string | null; plan?: string; packageKey?: string | null; packageName?: string | null; pricePaidLsl?: number; includedSignals?: number; signalsUsed?: number; signalsPending?: number; signalsUnused?: number; signalsRemaining?: number; carryoverSignals?: number; carryoverCreditLsl?: number; scannerAccess?: boolean; whatsappGroupAccess?: boolean; allServicesAccess?: boolean };
+export type LiveExecutionResult = { ok: boolean; mode: 'LIVE_ONLY'; clientOrderId?: string; signalId?: string; externalOrderId?: string; brokerPrice?: number; direction?: 'BUY'|'SELL'; lot?: number; sl?: number|null; tp?: number|null; error?: string; reconciliationRequired?: boolean; idempotent?: boolean; };
 export type ChartScanResult = {
   ok: boolean;
   detectedInstrument: string | null;
@@ -51,6 +52,7 @@ export type ChartScanResult = {
 
 export const getMarketQuotes = (symbols: string[]) => invokeFunction<{quotes: MarketQuote[]}>('market-data', { symbols });
 export const getConsensusSignals = (input: {symbols: string[]; threshold?: number; session?: string; style?: string}) => invokeFunction<{ok?: boolean; signals: ConsensusSignal[]; subscription?: SubscriptionQuota}>('consensus-signals', input);
+export const executeLiveTrade = (input: { signalId: string; clientOrderId: string; lot: number }) => invokeFunction<LiveExecutionResult>('live-execute', input);
 export const validateLicense = (input: {token?: string; action: 'activate'|'status'; deviceId: string}) => invokeFunction<LicenseValidation>('license-validate', input);
 export const sendAIMessage = (message: string, context?: unknown) => invokeFunction<{reply: string; status?: string}>('ai-chat', { message, context });
 export const scanSmartVibeChart = (imageBase64: string, mimeType = 'image/jpeg') => invokeFunction<ChartScanResult>('smartvibe-chart-scanner', { imageBase64, mimeType });
