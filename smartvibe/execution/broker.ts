@@ -26,6 +26,7 @@ export type BrokerPosition = {
 
 export type BrokerOrder = {
   id: string;
+  clientOrderId?: string;
   symbol: string;
   side: OrderSide;
   type: OrderType;
@@ -56,6 +57,7 @@ export type PlaceOrderRequest = {
 
 export type ExecutionEvent = {
   orderId: string;
+  clientOrderId?: string;
   status: OrderStatus;
   filledQuantity: number;
   fillPrice: number | null;
@@ -80,5 +82,5 @@ export interface BrokerAdapter {
   modifyOrder(orderId: string, changes: Partial<Pick<PlaceOrderRequest, 'price' | 'stopLoss' | 'takeProfit'>>): Promise<BrokerOrder>;
   cancelOrder(orderId: string): Promise<void>;
   closePosition(positionId: string): Promise<BrokerOrder>;
-  monitorExecution(listener: (event: ExecutionEvent) => void): () => void;
+  monitorExecution(listener: (event: ExecutionEvent) => void, onDisconnect?: (error?: unknown) => void): () => void;
 }
