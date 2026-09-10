@@ -40,22 +40,16 @@ export type LiveExecutionResult = {
   message?: string;
 };
 
-/** Research workers are read-only from the strategy's perspective. */
 export interface ResearchAdapter {
   readonly source: EvidenceSource;
   research(request: ResearchRequest): Promise<SmartVibeEvidence[]>;
 }
 
-/** Operations adapters execute only an already-approved SmartVibe intent. */
 export interface OperationsAdapter {
   readonly name: string;
   synchronizeSignal(intent: ExecutionIntent): Promise<{ accepted: boolean; externalId?: string; message?: string }>;
 }
 
-/**
- * Live broker adapters are server-side only. Never bundle broker credentials
- * or bridge secrets into the mobile client.
- */
 export interface LiveBrokerAdapter {
   readonly name: string;
   execute(request: LiveExecutionRequest): Promise<LiveExecutionResult>;
@@ -87,10 +81,9 @@ const assertExecutionRequest = (request: LiveExecutionRequest) => {
 };
 
 /**
- * HTTP adapter for an MT5 terminal bridge such as pyMt5Bridge.
- *
- * This adapter intentionally fails closed when no bridge URL is configured.
- * It performs no paper/demo fallback and never exposes credentials to the app.
+ * HTTP adapter for the open-source pyMt5Bridge HTTP surface.
+ * The bridge exposes /order parameters as FastAPI query parameters, not JSON.
+ * This adapter is server-side only and has no paper/demo fallback.
  */
 export class Mt5BridgeOperationsAdapter implements LiveBrokerAdapter {
   readonly name = 'mt5-http-live';
@@ -105,23 +98,23 @@ export class Mt5BridgeOperationsAdapter implements LiveBrokerAdapter {
     assertExecutionRequest(request);
     if (!this.baseUrl) throw new Error('MT5 live bridge is not configured.');
 
-    const url = `${this.baseUrl.replace(/\/$/, '')}/order`;
-    const orderType = request.direction === 'BUY' ? 'buy' : 'sell';
-    const headers: Record<string, string> = { 'content-type': 'application/json' };
+    const url = new URL(`${this.baseUrl.replace(/\/$/, '')}/order`);
+    url.searchParams.set('symbol', request.symbol);
+    url.searchParams.set('lot', String(request.lot));
+    url.searchParams.set('order_type', request.direction === 'BUY' ? 'buy' : 'sell');
+    url.searchParams.set('sl', String(request.sl ?? 0));
+    url.searchParams.set('tp', String(request.tp ?? 0));
+    url.searchParams.set('comment', `SV:${request.clientOrderId}`.slice(0, 31));
+
+    const headers: Record<string, string> = { accept: 'application/json' };
     if (this.bearerToken) headers.authorization = `Bearer ${this.bearerToken}`;
 
-    const response = await this.fetchImpl(url, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({
-        symbol: request.symbol,
-        lot: request.lot,
-        order_type: orderType,
-        sl: request.sl ?? 0,
-        tp: request.tp ?? 0,
-        comment: `SV:${request.clientOrderId}`.slice(0, 31),
-      }),
-    });
+    let response: Response;
+    try {
+      response = await this.fetchImpl(url.toString(), { method: 'POST', headers });
+    } catch {
+      throw new Error('Broker bridge request failed before an acknowledgement was received.');
+    }
 
     const body = await response.json().catch(() => null) as Record<string, unknown> | null;
     if (!response.ok) {
@@ -138,7 +131,6 @@ export class Mt5BridgeOperationsAdapter implements LiveBrokerAdapter {
       return { accepted: false, clientOrderId: request.clientOrderId, message: 'Broker acknowledgement was incomplete.' };
     }
 
-    // MT5 TRADE_RETCODE_DONE=10009 and TRADE_RETCODE_DONE_PARTIAL=10010.
     const accepted = retcode === 10009 || retcode === 10010;
     return {
       accepted,
@@ -150,13 +142,11 @@ export class Mt5BridgeOperationsAdapter implements LiveBrokerAdapter {
   }
 }
 
-/** Research workers remain disabled until concrete read-only providers are wired. */
 export const disabledResearchAdapter = (source: EvidenceSource): ResearchAdapter => ({
   source,
   async research() { return []; },
 });
 
-/** No broker fallback is permitted. */
 export const disabledOperationsAdapter: OperationsAdapter = {
   name: 'disabled',
   async synchronizeSignal() {
