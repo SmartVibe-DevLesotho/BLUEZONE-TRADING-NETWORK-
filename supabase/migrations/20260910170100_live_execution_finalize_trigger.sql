@@ -1,5 +1,7 @@
 -- Broker-confirmed executions consume the reserved signal entitlement exactly once.
--- The trigger is server-side; clients cannot finalize usage by writing to the ledger.
+-- The trigger is server-side; clients cannot mark an entitlement as used directly.
+-- It deliberately does not abort a broker-confirmed ledger update if entitlement
+-- state is already inconsistent; the executed order remains auditable for reconciliation.
 create or replace function public.finalize_smartvibe_live_execution_trigger()
 returns trigger
 language plpgsql
@@ -16,24 +18,20 @@ begin
     where signal_id=new.signal_id and user_id=new.user_id and status='PENDING'
     for update;
 
-    if v_license_id is null then
-      raise exception 'LIVE_EXECUTION_ENTITLEMENT_NOT_PENDING';
+    if v_license_id is not null then
+      update public.smartvibe_signal_usage
+      set status='USED'
+      where signal_id=new.signal_id and user_id=new.user_id and status='PENDING';
+      get diagnostics v_updated = row_count;
+
+      if v_updated = 1 then
+        update public.licenses
+        set used_signals=coalesce(used_signals,0)+1,
+            reserved_signals=greatest(0,coalesce(reserved_signals,0)-1),
+            updated_at=now()
+        where id=v_license_id;
+      end if;
     end if;
-
-    update public.smartvibe_signal_usage
-    set status='USED'
-    where signal_id=new.signal_id and user_id=new.user_id and status='PENDING';
-    get diagnostics v_updated = row_count;
-
-    if v_updated <> 1 then
-      raise exception 'LIVE_EXECUTION_ENTITLEMENT_FINALIZE_FAILED';
-    end if;
-
-    update public.licenses
-    set used_signals=coalesce(used_signals,0)+1,
-        reserved_signals=greatest(0,coalesce(reserved_signals,0)-1),
-        updated_at=now()
-    where id=v_license_id;
   end if;
 
   return new;
