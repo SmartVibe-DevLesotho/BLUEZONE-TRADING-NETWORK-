@@ -22,3 +22,5 @@ jobs:
         run: npm ci --ignore-scripts
       - name: Typecheck
         run: npm run typecheck
+      - name: Expo configuration and dependency health
+        run: npx expo-doctor
