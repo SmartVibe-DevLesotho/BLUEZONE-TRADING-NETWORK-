@@ -31,7 +31,7 @@ jobs:
         with:
           deno-version: v2.x
       - name: Validate live Edge Functions
-        run: deno check supabase/functions/live-execute/index.ts supabase/functions/consensus-signals/index.ts
+        run: deno check --node-modules-dir=auto supabase/functions/live-execute/index.ts supabase/functions/consensus-signals/index.ts
       - name: Verify hidden mechanics boundary
         run: |
           if grep -RInE "from ['\"].*smartvibe/(methodology|core)|import .*smartvibe/(methodology|core)" smartvibe/adapters smartvibe/mechanics smartvibe/intelligence smartvibe/decision 2>/dev/null; then
