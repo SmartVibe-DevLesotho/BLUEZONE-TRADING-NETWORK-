@@ -5,11 +5,11 @@ export type IdempotencyCheck = {
   existingOrder?: BrokerOrder;
 };
 
-/** Prevents a second submission for the same SmartVibe client order identifier. */
+/** Finds an existing broker order using the stable client-side execution intent ID. */
 export function findExistingClientOrder(
   orders: BrokerOrder[],
   clientOrderId: string,
 ): IdempotencyCheck {
-  const existingOrder = orders.find((order) => order.id === clientOrderId);
+  const existingOrder = orders.find((order) => order.clientOrderId === clientOrderId);
   return existingOrder ? { duplicate: true, existingOrder } : { duplicate: false };
 }
