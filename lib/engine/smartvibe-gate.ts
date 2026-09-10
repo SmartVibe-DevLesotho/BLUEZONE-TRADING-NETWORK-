@@ -38,28 +38,39 @@ export function evaluateSmartVibeGate(
   coreMethodologyPass = true,
 ): SmartVibeGateResult {
   const matrix = buildEvidenceMatrix(signal, evidence, coreMethodologyPass);
+  const evidenceForSymbol = evidence.filter((item) => item.symbol === signal.symbol);
+  const evidenceMissing = evidenceForSymbol.length === 0;
   const riskBlocked = matrix.riskCase.length > 0;
-  const structuralEvidenceBlocked = !matrix.structurePass || !matrix.liquidityPass || !matrix.volatilityPass;
-  const approved = coreMethodologyPass && !riskBlocked && !structuralEvidenceBlocked;
+  const structuralEvidenceBlocked =
+    !matrix.structurePass || !matrix.liquidityPass || !matrix.volatilityPass;
 
-  const averageBull = evidence.length
-    ? evidence.reduce((sum, item) => sum + clampEvidenceScore(item.bullCaseStrength), 0) / evidence.length
+  const averageBull = evidenceForSymbol.length
+    ? evidenceForSymbol.reduce((sum, item) => sum + clampEvidenceScore(item.bullCaseStrength), 0) / evidenceForSymbol.length
     : 0;
-  const averageBear = evidence.length
-    ? evidence.reduce((sum, item) => sum + clampEvidenceScore(item.bearCaseStrength), 0) / evidence.length
+  const averageBear = evidenceForSymbol.length
+    ? evidenceForSymbol.reduce((sum, item) => sum + clampEvidenceScore(item.bearCaseStrength), 0) / evidenceForSymbol.length
     : 0;
+
+  const bearCaseOutweighsBull = averageBear > averageBull;
+  const approved =
+    coreMethodologyPass &&
+    !evidenceMissing &&
+    !riskBlocked &&
+    !structuralEvidenceBlocked &&
+    !bearCaseOutweighsBull;
 
   let reason = 'SmartVibe Core setup accepted by the authority gate.';
   if (!coreMethodologyPass) reason = 'Rejected: SmartVibe Core methodology did not pass.';
+  else if (evidenceMissing) reason = 'Rejected: no supporting evidence is available for this symbol.';
   else if (riskBlocked) reason = 'Rejected: external risk evidence contains a blocking warning.';
   else if (structuralEvidenceBlocked) reason = 'Rejected: supporting evidence conflicts with required market conditions.';
-  else if (averageBear > averageBull) reason = 'Rejected: bear-case evidence outweighs bull-case evidence.';
+  else if (bearCaseOutweighsBull) reason = 'Rejected: bear-case evidence outweighs bull-case evidence.';
 
   return {
-    approved: approved && averageBear <= averageBull,
+    approved,
     reason,
     methodologyAuthority: 'smartvibe-core',
-    evidenceCount: evidence.length,
+    evidenceCount: evidenceForSymbol.length,
     matrix,
   };
 }
