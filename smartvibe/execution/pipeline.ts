@@ -1,6 +1,7 @@
 import { evaluateSmartVibeGate } from '../decision/gate';
 import { emitAuditEvent, type AuditEvent, type AuditSink } from '../audit/events';
 import { validateLiveRisk, type RiskLimits } from '../risk/engine';
+import { findExistingClientOrder } from './idempotency';
 import type {
   BrokerAdapter,
   BrokerOrder,
@@ -29,9 +30,14 @@ export type ExecutionPipelineResult = {
   clientOrderId?: string;
 };
 
-function makeClientOrderId(setup: SmartVibeSetup, now: Date): string {
-  const signal = setup.signalId.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 48) || 'signal';
-  return `sv-${signal}-${now.getTime()}`;
+/**
+ * Stable execution intent ID: retries of the same SmartVibe signal/version
+ * must resolve to the same broker client order ID instead of creating a new one.
+ */
+function makeClientOrderId(setup: SmartVibeSetup): string {
+  const signal = setup.signalId.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 40) || 'signal';
+  const version = setup.methodologyVersion.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 24) || 'v1';
+  return `sv-${signal}-${version}`;
 }
 
 function audit(
@@ -76,6 +82,8 @@ export async function executeSmartVibeLiveOrder(
     return { status: 'BLOCKED', stage: 'RISK', reason: 'GLOBAL_EMERGENCY_KILL_SWITCH_ACTIVE', gate };
   }
 
+  const clientOrderId = makeClientOrderId(setup);
+
   try {
     await broker.authenticate();
     const [account, positions, orders, symbols, quote] = await Promise.all([
@@ -89,19 +97,32 @@ export async function executeSmartVibeLiveOrder(
     if (!symbols.includes(setup.symbol)) {
       const reason = 'SYMBOL_NOT_AVAILABLE_AT_BROKER';
       audit(sink, { type: 'RISK_BLOCKED', actor: 'SMARTVIBE', entityId: setup.signalId, symbol: setup.symbol, metadata: { reason } }, now);
-      return { status: 'BLOCKED', stage: 'RISK', reason, gate };
+      return { status: 'BLOCKED', stage: 'RISK', reason, gate, clientOrderId };
     }
 
-    const duplicate = orders.some((order) =>
+    const existing = findExistingClientOrder(orders, clientOrderId);
+    if (existing.duplicate && existing.existingOrder) {
+      const reason = 'DUPLICATE_CLIENT_ORDER_ID_BLOCKED';
+      audit(sink, {
+        type: 'RISK_BLOCKED',
+        actor: 'SMARTVIBE',
+        entityId: clientOrderId,
+        symbol: setup.symbol,
+        metadata: { reason, existingOrderId: existing.existingOrder.id, existingStatus: existing.existingOrder.status },
+      }, now);
+      return { status: 'BLOCKED', stage: 'RISK', reason, gate, order: existing.existingOrder, clientOrderId };
+    }
+
+    const duplicateActiveOrder = orders.some((order) =>
       order.symbol === setup.symbol &&
       (order.status === 'PENDING' || order.status === 'ACCEPTED' || order.status === 'PARTIALLY_FILLED') &&
       order.side === setup.direction &&
       order.quantity === quantity,
     );
-    if (duplicate) {
+    if (duplicateActiveOrder) {
       const reason = 'DUPLICATE_ACTIVE_ORDER_BLOCKED';
       audit(sink, { type: 'RISK_BLOCKED', actor: 'SMARTVIBE', entityId: setup.signalId, symbol: setup.symbol, metadata: { reason } }, now);
-      return { status: 'BLOCKED', stage: 'RISK', reason, gate };
+      return { status: 'BLOCKED', stage: 'RISK', reason, gate, clientOrderId };
     }
 
     const risk = validateLiveRisk({
@@ -112,6 +133,8 @@ export async function executeSmartVibeLiveOrder(
       quantity,
       limits,
       dailyLossPercent,
+      quoteTimestamp: quote.timestamp,
+      now,
     });
     if (!risk.allowed) {
       audit(sink, {
@@ -121,10 +144,9 @@ export async function executeSmartVibeLiveOrder(
         symbol: setup.symbol,
         metadata: { reasons: risk.reasons },
       }, now);
-      return { status: 'BLOCKED', stage: 'RISK', reason: risk.reasons.join('|'), gate, risk };
+      return { status: 'BLOCKED', stage: 'RISK', reason: risk.reasons.join('|'), gate, risk, clientOrderId };
     }
 
-    const clientOrderId = makeClientOrderId(setup, now);
     const request: PlaceOrderRequest = {
       symbol: setup.symbol,
       side: setup.direction,
@@ -140,7 +162,7 @@ export async function executeSmartVibeLiveOrder(
       actor: 'SMARTVIBE',
       entityId: clientOrderId,
       symbol: setup.symbol,
-      metadata: { direction: setup.direction, quantity, signalId: setup.signalId },
+      metadata: { direction: setup.direction, quantity, signalId: setup.signalId, methodologyVersion: setup.methodologyVersion },
     }, now);
 
     const order = await broker.placeOrder(request);
@@ -164,8 +186,8 @@ export async function executeSmartVibeLiveOrder(
       actor: 'BROKER',
       entityId: setup.signalId,
       symbol: setup.symbol,
-      metadata: { error: reason },
+      metadata: { error: reason, clientOrderId },
     }, now);
-    return { status: 'FAILED', stage: 'BROKER', reason, gate };
+    return { status: 'FAILED', stage: 'BROKER', reason, gate, clientOrderId };
   }
 }
