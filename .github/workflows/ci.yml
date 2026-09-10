@@ -26,6 +26,8 @@ jobs:
         run: npm run typecheck
       - name: Expo configuration and dependency health
         run: npx expo-doctor
+      - name: Production web export
+        run: npm run export:web
       - name: Typecheck Supabase live functions
         uses: denoland/setup-deno@v2
         with:
