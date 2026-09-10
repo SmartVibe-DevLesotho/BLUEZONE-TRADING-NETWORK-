@@ -8,7 +8,8 @@ import { getDeviceId } from '@/lib/device';
 import { C } from '@/components/ui';
 
 const screens = [['markets','Markets','stats-chart'],['chart','Chart','analytics'],['sessions','Sessions','time'],['autotrade','Signals','flash'],['more','More','menu']] as const;
-const previewMode = process.env.EXPO_PUBLIC_PREVIEW_MODE === 'true';
+// Preview access is deliberately limited to development builds. A release build can never bypass auth/license checks via an env flag.
+const previewMode = __DEV__ && process.env.EXPO_PUBLIC_PREVIEW_MODE === 'true';
 
 export default function TabsLayout() {
   const router = useRouter();
@@ -37,7 +38,7 @@ export default function TabsLayout() {
 
   useEffect(() => { checkAccess(); }, []);
 
-  if (!ready) return <View style={{flex:1,justifyContent:'center',alignItems:'center',padding:28,backgroundColor:C.surface}}>{checking ? <><ActivityIndicator color={C.cyan}/><Text style={{color:C.muted,marginTop:12}}>Checking SmartVibe access…</Text></> : <><Text style={{color:C.ink,fontSize:20,fontWeight:'900',textAlign:'center'}}>SmartVibe is still connected to this screen</Text><Text style={{color:C.muted,textAlign:'center',marginTop:8,lineHeight:21}}>{error}</Text><Pressable onPress={checkAccess} style={{marginTop:18,paddingVertical:14,paddingHorizontal:24,borderRadius:14,backgroundColor:C.blue,borderWidth:1,borderColor:C.cyan}}><Text style={{color:C.white,fontWeight:'900'}}>Retry</Text></Pressable></>}</View>;
+  if (!ready) return <View style={{flex:1,justifyContent:'center',alignItems:'center',padding:28,backgroundColor:C.surface}}>{checking ? <><ActivityIndicator color={C.cyan}/><Text style={{color:C.muted,marginTop:12}}>Checking SmartVibe access…</Text></> : <><Text style={{color:C.ink,fontSize:20,fontWeight:'900',textAlign:'center'}}>SmartVibe access verification</Text><Text style={{color:C.muted,textAlign:'center',marginTop:8,lineHeight:21}}>{error}</Text><Pressable onPress={checkAccess} style={{marginTop:18,paddingVertical:14,paddingHorizontal:24,borderRadius:14,backgroundColor:C.blue,borderWidth:1,borderColor:C.cyan}}><Text style={{color:C.white,fontWeight:'900'}}>Retry</Text></Pressable></>}</View>;
 
   return <Tabs screenOptions={{headerShown:false,tabBarActiveTintColor:C.cyan,tabBarInactiveTintColor:C.muted,tabBarStyle:{height:68,paddingTop:7,paddingBottom:9,borderTopColor:C.border,backgroundColor:C.navy},tabBarLabelStyle:{fontSize:11,fontWeight:'700'}}}>
     {screens.map(([name,title,icon]) => <Tabs.Screen key={name} name={name} options={{title,tabBarIcon:({color,size})=><Ionicons name={icon} color={color} size={size}/>}}/>)}
