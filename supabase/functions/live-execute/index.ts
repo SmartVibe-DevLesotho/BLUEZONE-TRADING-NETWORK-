@@ -44,10 +44,18 @@ Deno.serve(async req=>{
   const executionPrice=signal.direction==='BUY'?ask:bid,deviationPips=Math.abs(executionPrice-Number(signal.entry))/pipSize(signal.symbol); if(!Number.isFinite(deviationPips)||deviationPips>MAX_ENTRY_DEVIATION_PIPS)return json({ok:false,error:'ENTRY_DEVIATION_BLOCKED',deviationPips,maxEntryDeviationPips:MAX_ENTRY_DEVIATION_PIPS,mode:'LIVE_ONLY'},409);
   const symbolResponse=await fetch(`${base}/symbol/${encodeURIComponent(signal.symbol)}`,{headers}); if(!symbolResponse.ok)return json({ok:false,error:'MT5_SYMBOL_UNAVAILABLE',mode:'LIVE_ONLY'},503);
   const spec=await symbolResponse.json().catch(()=>null) as Record<string,any>|null,minLot=Number(spec?.volume_min),maxLot=Number(spec?.volume_max),step=Number(spec?.volume_step);
-  if(!Number.isFinite(minLot)||!Number.isFinite(maxLot)||!Number.isFinite(step)||lot<minLot||lot>maxLot)return json({ok:false,error:'LOT_SIZE_BLOCKED',mode:'LIVE_ONLY'},400);
+  if(!Number.isFinite(minLot)||!Number.isFinite(maxLot)||!Number.isFinite(step)||lot<minLot||lot>maxLot)return json({ok:false,error:'LOT_SIZE_BLOCKED',minLot,maxLot,step,mode:'LIVE_ONLY'},400);
   const stepAligned=Math.abs(Math.round((lot-minLot)/step)*step-(lot-minLot))<Math.max(step*1e-6,1e-10); if(!stepAligned)return json({ok:false,error:'LOT_STEP_BLOCKED',minLot,maxLot,step,mode:'LIVE_ONLY'},400);
   const {data:claimed,error:claimError}=await admin.from('smartvibe_live_orders').insert({user_id:user.id,signal_id:signalId,client_order_id:clientOrderId,symbol:signal.symbol,direction:signal.direction,lot,requested_entry:Number(signal.entry),sl:signal.sl,tp:signal.tp,status:'CLAIMED'}).select('id,signal_id,client_order_id,status').single();
-  if(claimError){if(claimError.code==='23505'){const {data:duplicate}=await admin.from('smartvibe_live_orders').select('id,signal_id,client_order_id,status,external_order_id,broker_entry,error').eq('client_order_id',clientOrderId).maybeSingle();return json({ok:duplicate?.status==='EXECUTED',mode:'LIVE_ONLY',idempotent:true,order:duplicate});}return json({ok:false,error:'LIVE_ORDER_CLAIM_FAILED',mode:'LIVE_ONLY'},500);}
+  if(claimError){
+   if(claimError.code==='23505'){
+    const {data:duplicateByClient}=await admin.from('smartvibe_live_orders').select('id,signal_id,client_order_id,status,external_order_id,broker_entry,error,created_at,executed_at').eq('client_order_id',clientOrderId).maybeSingle();
+    if(duplicateByClient)return json({ok:duplicateByClient.status==='EXECUTED',mode:'LIVE_ONLY',idempotent:true,order:duplicateByClient});
+    const {data:duplicateBySignal}=await admin.from('smartvibe_live_orders').select('id,signal_id,client_order_id,status,external_order_id,broker_entry,error,created_at,executed_at').eq('signal_id',signalId).in('status',['CLAIMED','EXECUTED','AMBIGUOUS']).maybeSingle();
+    if(duplicateBySignal)return json({ok:duplicateBySignal.status==='EXECUTED',error:duplicateBySignal.status==='CLAIMED'?'SIGNAL_EXECUTION_IN_PROGRESS':'SIGNAL_REQUIRES_RECONCILIATION',mode:'LIVE_ONLY',reconciliationRequired:duplicateBySignal.status==='AMBIGUOUS',order:duplicateBySignal},409);
+   }
+   return json({ok:false,error:'LIVE_ORDER_CLAIM_FAILED',mode:'LIVE_ONLY'},500);
+  }
   const orderUrl=new URL(`${base}/order`); orderUrl.searchParams.set('symbol',signal.symbol);orderUrl.searchParams.set('lot',String(lot));orderUrl.searchParams.set('order_type',signal.direction==='BUY'?'buy':'sell');orderUrl.searchParams.set('sl',String(signal.sl??0));orderUrl.searchParams.set('tp',String(signal.tp??0));orderUrl.searchParams.set('comment',`SV:${clientOrderId}`.slice(0,31));
   let brokerResponse:Response; try{brokerResponse=await fetch(orderUrl.toString(),{method:'POST',headers});}catch{await admin.from('smartvibe_live_orders').update({status:'AMBIGUOUS',error:'No broker acknowledgement received.',updated_at:new Date().toISOString()}).eq('id',claimed.id);return json({ok:false,error:'BROKER_ACKNOWLEDGEMENT_MISSING',mode:'LIVE_ONLY',reconciliationRequired:true,clientOrderId},502);}
   const brokerBody=await brokerResponse.json().catch(()=>null) as Record<string,any>|null;
