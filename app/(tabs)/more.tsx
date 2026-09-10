@@ -1,4 +1,4 @@
-import { Linking, ScrollView, Text, Alert } from 'react-native';
+import { Linking, ScrollView, Text, Alert, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Screen, Card, C, Header, Button } from '@/components/ui';
 
@@ -31,6 +31,20 @@ export default function More() {
     <Button title="AI Assistant" onPress={() => router.push('/ai')} />
     <Button title="My Profile & Subscription" onPress={() => router.push('/profile')} />
     <Button title="WhatsApp Support" onPress={openWhatsApp} />
+    <Card>
+      <Text style={{ fontWeight: '900', fontSize: 17, color: C.ink }}>Mobile Store Availability</Text>
+      <Text style={{ color: C.muted, marginTop: 6, lineHeight: 20 }}>The native SmartVibe app is available for direct testing now. Public store publication is planned for a future release.</Text>
+      <View style={{ marginTop: 12, gap: 8 }}>
+        <View style={{ padding: 11, borderRadius: 10, borderWidth: 1, borderColor: '#D7DEE8' }}>
+          <Text style={{ fontWeight: '900', color: C.ink }}>Google Play</Text>
+          <Text style={{ color: C.muted, marginTop: 3, fontSize: 12 }}>Coming Soon</Text>
+        </View>
+        <View style={{ padding: 11, borderRadius: 10, borderWidth: 1, borderColor: '#D7DEE8' }}>
+          <Text style={{ fontWeight: '900', color: C.ink }}>Apple App Store</Text>
+          <Text style={{ color: C.muted, marginTop: 3, fontSize: 12 }}>Coming Soon</Text>
+        </View>
+      </View>
+    </Card>
     <Card>
       <Text style={{ fontWeight: '900', fontSize: 17, color: C.ink }}>Support</Text>
       <Text style={{ color: C.muted, marginTop: 5, lineHeight: 20 }}>SmartVibe Support • {WHATSAPP_DISPLAY}</Text>
