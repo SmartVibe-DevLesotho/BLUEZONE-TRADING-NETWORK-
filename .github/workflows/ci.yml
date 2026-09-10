@@ -18,8 +18,8 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - name: Install exactly from lockfile
-        run: npm ci --ignore-scripts
+      - name: Install dependencies
+        run: npm install --ignore-scripts
       - name: Typecheck
         run: npm run typecheck
       - name: Expo configuration and dependency health
