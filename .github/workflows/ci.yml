@@ -26,3 +26,9 @@ jobs:
         run: npm run typecheck
       - name: Expo configuration and dependency health
         run: npx expo-doctor
+      - name: Verify hidden mechanics boundary
+        run: |
+          if grep -RInE "from ['\"].*smartvibe/(methodology|core)|import .*smartvibe/(methodology|core)" smartvibe/adapters smartvibe/mechanics smartvibe/intelligence smartvibe/decision 2>/dev/null; then
+            echo "External mechanics must not import or mutate SmartVibe methodology/core modules."
+            exit 1
+          fi
