@@ -26,6 +26,12 @@ jobs:
         run: npm run typecheck
       - name: Expo configuration and dependency health
         run: npx expo-doctor
+      - name: Typecheck Supabase live functions
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Validate live Edge Functions
+        run: deno check supabase/functions/live-execute/index.ts supabase/functions/consensus-signals/index.ts
       - name: Verify hidden mechanics boundary
         run: |
           if grep -RInE "from ['\"].*smartvibe/(methodology|core)|import .*smartvibe/(methodology|core)" smartvibe/adapters smartvibe/mechanics smartvibe/intelligence smartvibe/decision 2>/dev/null; then
