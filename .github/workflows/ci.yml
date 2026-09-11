@@ -36,6 +36,18 @@ jobs:
           deno-version: v2.x
       - name: Validate live Edge Functions
         run: deno check --node-modules-dir=auto supabase/functions/live-execute/index.ts supabase/functions/consensus-signals/index.ts
+      - name: Validate MT5 bridge source
+        run: python -m py_compile mt5-bridge/app.py
+      - name: Verify MT5 bridge security contract
+        run: |
+          if grep -nE 'docs_url=|redoc_url=|MT5_BRIDGE_TOKEN.*getenv' mt5-bridge/app.py | grep -q 'docs_url='; then
+            echo "Interactive bridge documentation must remain disabled."
+            exit 1
+          fi
+          grep -q 'if not TOKEN:' mt5-bridge/app.py
+          grep -q 'if ALLOW_READ_ONLY:' mt5-bridge/app.py
+          grep -q 'api.order_check' mt5-bridge/app.py
+          grep -q 'api.order_send' mt5-bridge/app.py
       - name: Verify supporting mechanism boundary
         run: |
           if grep -RInE "from ['\"].*smartvibe/(methodology|core)|import .*smartvibe/(methodology|core)" smartvibe/adapters smartvibe/mechanics smartvibe/intelligence smartvibe/decision 2>/dev/null; then
