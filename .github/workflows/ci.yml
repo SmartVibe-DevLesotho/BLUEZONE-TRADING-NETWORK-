@@ -24,6 +24,8 @@ jobs:
         run: npm ci --ignore-scripts
       - name: Typecheck
         run: npm run typecheck
+      - name: SmartVibe final-decision firewall tests
+        run: npm run test:smartvibe-firewall
       - name: Expo configuration and dependency health
         run: npx expo-doctor
       - name: Production web export
@@ -42,7 +44,7 @@ jobs:
           fi
       - name: Verify customer-facing identity
         run: |
-          if grep -RInE "KillaXBT|TradingAgents|ForexTreeSwarm|QuantDinger|NautilusTrader|ChartScanAI|AI-Trader|Gifted87|EA31337|OpenBB|yfinance|OANDA|Alpaca|FXCM" app components context lib 2>/dev/null; then
+          if grep -RInE "KillaXBT|Ezra|BlueZone|TradingAgents|ForexTreeSwarm|QuantDinger|NautilusTrader|ChartScanAI|AI-Trader|Gifted87|EA31337|OpenBB|yfinance|OANDA|Alpaca|FXCM" app components context lib 2>/dev/null; then
             echo "External methodology/provider names must not leak into customer-facing application code."
             exit 1
           fi
