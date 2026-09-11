@@ -3,5 +3,6 @@ export * from './broker-registry';
 export * from './evidence';
 export * from './market-data';
 export * from './market-structure';
+export * from './periodic-liquidity';
 export * from './smartvibe-gate';
 export * from './spot-accumulation';
