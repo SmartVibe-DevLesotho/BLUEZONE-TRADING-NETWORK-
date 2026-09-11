@@ -1,5 +1,9 @@
+type WorkersAI = {
+  run(model: string, input: unknown): Promise<unknown>;
+};
+
 type Env = {
-  AI: { run: (model: string, input: unknown) => Promise<unknown> };
+  AI: WorkersAI;
   AI_MODEL?: string;
   AI_GATEWAY_TOKEN?: string;
 };
@@ -43,7 +47,7 @@ export default {
 
     let body: ChatRequest;
     try {
-      body = await request.json<ChatRequest>();
+      body = await request.json();
     } catch {
       return json({ error: 'Request body must be valid JSON.' }, 400);
     }
