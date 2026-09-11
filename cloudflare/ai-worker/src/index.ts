@@ -1,5 +1,5 @@
 type Env = {
-  AI: Ai;
+  AI: { run: (model: string, input: unknown) => Promise<unknown> };
   AI_MODEL?: string;
   AI_GATEWAY_TOKEN?: string;
 };
@@ -62,7 +62,6 @@ export default {
       'Prefer disciplined risk management, structural invalidation, and confirmation over prediction.',
     ].join(' ');
 
-    const prompt = `${system}\n\nTrading context:\n${normalizeContext(body.context)}\n\nUser:\n${message}`;
     const model = env.AI_MODEL || '@cf/meta/llama-3.1-8b-instruct';
 
     try {
