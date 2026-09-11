@@ -47,6 +47,20 @@ jobs:
           grep -q 'MT5_ALLOW_READ_ONLY=true' mt5-bridge/cloud/oracle/bootstrap.sh
           grep -q '127.0.0.1:8787' mt5-bridge/cloud/oracle/bootstrap.sh
           grep -q 'cloudflared tunnel' mt5-bridge/cloud/oracle/install-cloudflared.sh
+      - name: Verify universal market-data contract
+        run: |
+          grep -q "export type NormalizedMarketBar" lib/engine/market-data.ts
+          grep -q "marketType" lib/engine/market-data.ts
+          grep -q "timezone: 'UTC'" lib/engine/market-data.ts
+          grep -q "lookAheadDetected" lib/engine/market-data.ts
+      - name: Verify non-leveraged accumulation boundary
+        run: |
+          grep -q "mode: 'ACCUMULATION_PLAN'" lib/engine/spot-accumulation.ts
+          grep -q "requiresSmartVibeAuthorization: true" lib/engine/spot-accumulation.ts
+          if grep -nE "placeOrder|execute\(|LiveExecutionRequest|BrokerAdapter" lib/engine/spot-accumulation.ts; then
+            echo "Spot accumulation planning must not execute leveraged/live orders."
+            exit 1
+          fi
       - name: Verify MT5 bridge security contract
         run: |
           grep -q 'docs_url=None' mt5-bridge/app.py
@@ -67,7 +81,7 @@ jobs:
           fi
       - name: Verify customer-facing identity
         run: |
-          if grep -RInE "KillaXBT|Ezra|BlueZone|TradingAgents|ForexTreeSwarm|QuantDinger|NautilusTrader|ChartScanAI|AI-Trader|Gifted87|EA31337|OpenBB|yfinance|OANDA|Alpaca|FXCM" app components context lib 2>/dev/null; then
+          if grep -RInE "KillaXBT|Ezra|BlueZone|TradingAgents|ForexTreeSwarm|QuantDinger|NautilusTrader|LEAN|ChartScanAI|AI-Trader|Gifted87|EA31337|OpenBB|yfinance|OANDA|Alpaca|FXCM" app components context lib 2>/dev/null; then
             echo "External methodology/provider names must not leak into customer-facing application code."
             exit 1
           fi
