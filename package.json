@@ -8,7 +8,7 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
-    "test:smartvibe-firewall": "tsc -p tsconfig.tests.json && node .test-build/smartvibe/tests/final-decision-firewall.test.js && node .test-build/smartvibe/tests/supporting-mechanism.test.js",
+    "test:smartvibe-firewall": "tsc -p tsconfig.tests.json && node .test-build/tests/final-decision-firewall.test.js && node .test-build/tests/supporting-mechanism.test.js",
     "export:web": "expo export --platform web"
   },
   "dependencies": {
