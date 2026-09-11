@@ -1,5 +1,7 @@
 export type ValidationStatus = 'PASS' | 'FAIL' | 'NEUTRAL';
 
+export type SmartVibeFinalDecision = 'NO SETUP' | 'WATCH' | 'FORMING' | 'VALIDATED' | 'APPROVED' | 'REJECTED' | 'EXPIRED' | 'EXECUTED' | 'CLOSED' | 'WAIT';
+
 export type SmartVibeSetup = {
   signalId: string;
   symbol: string;
@@ -11,9 +13,12 @@ export type SmartVibeSetup = {
   methodologySnapshot: Record<string, unknown>;
 };
 
+export type EvidenceRole = 'PRIMARY' | 'CONFIRMING' | 'CONTEXTUAL' | 'CONTRADICTORY' | 'INSUFFICIENT';
+
 export type Evidence = {
   source: string;
   status: ValidationStatus;
+  role?: EvidenceRole;
   summary: string;
   confidence?: number;
   metrics?: Record<string, number | string | boolean | null>;
@@ -29,6 +34,7 @@ export interface EvidenceAdapter {
 export type SmartVibeGateResult = {
   signalId: string;
   methodologyDecision: 'BUY' | 'SELL';
+  finalDecision: SmartVibeFinalDecision;
   externalValidation: 'CONFIRMED' | 'CAUTION' | 'REJECTED';
   evidence: Evidence[];
   executionAllowed: boolean;
