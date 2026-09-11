@@ -38,6 +38,15 @@ jobs:
         run: deno check --node-modules-dir=auto supabase/functions/live-execute/index.ts supabase/functions/consensus-signals/index.ts
       - name: Validate MT5 bridge source
         run: python -m py_compile mt5-bridge/app.py
+      - name: Validate MT5 cloud bootstrap scripts
+        run: |
+          bash -n mt5-bridge/cloud/oracle/bootstrap.sh
+          bash -n mt5-bridge/cloud/oracle/install-cloudflared.sh
+          grep -q 'uname -m' mt5-bridge/cloud/oracle/bootstrap.sh
+          grep -q 'x86_64' mt5-bridge/cloud/oracle/bootstrap.sh
+          grep -q 'MT5_ALLOW_READ_ONLY=true' mt5-bridge/cloud/oracle/bootstrap.sh
+          grep -q '127.0.0.1:8787' mt5-bridge/cloud/oracle/bootstrap.sh
+          grep -q 'cloudflared tunnel' mt5-bridge/cloud/oracle/install-cloudflared.sh
       - name: Verify MT5 bridge security contract
         run: |
           grep -q 'docs_url=None' mt5-bridge/app.py
