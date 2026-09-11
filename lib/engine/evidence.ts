@@ -1,22 +1,14 @@
-/**
- * SmartVibe Evidence Contract
- *
- * External research/technical systems may provide evidence only. They must not
- * produce or mutate a SmartVibe signal directly.
- */
-export type EvidenceStatus = 'confirmed' | 'neutral' | 'warning' | 'unknown';
+import type { StructureEvidence } from './market-structure';
 
-export type EvidenceSource =
-  | 'forextree-swarm'
-  | 'tradingbot'
-  | 'tradingagents'
-  | 'ai-trader'
-  | 'quantdinger';
+export type EvidenceStatus = 'confirmed' | 'neutral' | 'warning' | 'unknown';
+export type EvidenceRole = 'PRIMARY' | 'CONFIRMING' | 'CONTEXTUAL' | 'CONTRADICTORY' | 'INSUFFICIENT';
+export type EvidenceSource = 'smartvibe-market-structure';
 
 export type SmartVibeEvidence = {
   source: EvidenceSource;
   generatedAt: string;
   symbol: string;
+  role: EvidenceRole;
   structureAlignment: EvidenceStatus;
   liquidity: EvidenceStatus;
   volatility: EvidenceStatus;
@@ -27,6 +19,7 @@ export type SmartVibeEvidence = {
   riskStatus: EvidenceStatus;
   historicalSimilarity: EvidenceStatus;
   notes: string[];
+  structure?: StructureEvidence;
   provenance?: string;
 };
 
@@ -34,15 +27,11 @@ export type EvidenceMatrix = {
   symbol: string;
   collectedAt: string;
   coreMethodologyPass: boolean;
-  structurePass: boolean;
-  liquidityPass: boolean;
-  volatilityPass: boolean;
-  macroPass: boolean;
-  sentimentPass: boolean;
-  bullCase: SmartVibeEvidence[];
-  bearCase: SmartVibeEvidence[];
-  riskCase: SmartVibeEvidence[];
-  historicalCase: SmartVibeEvidence[];
+  primary: SmartVibeEvidence[];
+  confirming: SmartVibeEvidence[];
+  contextual: SmartVibeEvidence[];
+  contradictory: SmartVibeEvidence[];
+  insufficient: SmartVibeEvidence[];
 };
 
 export type SmartVibeGateResult = {

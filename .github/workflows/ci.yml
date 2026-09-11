@@ -34,9 +34,15 @@ jobs:
           deno-version: v2.x
       - name: Validate live Edge Functions
         run: deno check --node-modules-dir=auto supabase/functions/live-execute/index.ts supabase/functions/consensus-signals/index.ts
-      - name: Verify hidden mechanics boundary
+      - name: Verify supporting mechanism boundary
         run: |
           if grep -RInE "from ['\"].*smartvibe/(methodology|core)|import .*smartvibe/(methodology|core)" smartvibe/adapters smartvibe/mechanics smartvibe/intelligence smartvibe/decision 2>/dev/null; then
-            echo "External mechanics must not import or mutate SmartVibe methodology/core modules."
+            echo "Supporting mechanisms must not import or mutate SmartVibe methodology/core modules."
+            exit 1
+          fi
+      - name: Verify customer-facing identity
+        run: |
+          if grep -RInE "KillaXBT|TradingAgents|ForexTreeSwarm|QuantDinger|NautilusTrader|ChartScanAI|AI-Trader|Gifted87|EA31337|OpenBB|yfinance|OANDA|Alpaca|FXCM" app components context lib 2>/dev/null; then
+            echo "External methodology/provider names must not leak into customer-facing application code."
             exit 1
           fi

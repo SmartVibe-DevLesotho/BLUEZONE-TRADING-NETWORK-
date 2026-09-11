@@ -1,46 +1,47 @@
-# SmartVibe Hidden Mechanics Architecture
+# SmartVibe Supporting Mechanisms Architecture
 
 ## Authority model
 
-SmartVibe Core is the only strategy authority. Ezra Core, A&V, 714, CRT (SAST / UTC+2), OB/FVG, Blue Zone Laws, EMA framework and structural management remain inside the Core methodology boundary.
+SmartVibe Trading Network is the only customer-facing product. SmartVibe Primary Methodology is the final trading authority.
 
-External systems are workers. They may return evidence, research, risk information, or operational results, but they cannot create, rewrite, or mutate SmartVibe methodology decisions.
+The architecture is:
 
-## Adapter boundary
+Market Data → Supporting Mechanisms → Evidence / Confluence → SmartVibe Primary Methodology → Final Decision → Risk Engine → Live Execution Gate → Broker.
 
-### Research adapters
+Supporting mechanisms provide context only. They cannot create, approve, modify, or execute a trade independently.
 
-- ForexTreeSwarm: market-intelligence evidence
-- TradingBot: technical/mechanical evidence
-- TradingAgents: multi-agent research, bull/bear/risk review, research memory/checkpoints
-- QuantDinger: candidate only until repository, license, architecture and dependencies are inspected
+## Universal market structure mechanism
 
-### Operations adapter
+The internal market-structure mechanism is instrument-agnostic. It evaluates available Monthly, Weekly, Daily, 4H, 1H and execution-timeframe data without assuming a particular asset.
 
-AI-Trader-style infrastructure may be used for agent registration, signal lifecycle, background jobs, synchronization and execution adapters. It does not become a strategy source.
+It can describe:
 
-Execution receives an `ExecutionIntent` only after the SmartVibe authority gate has approved a Core-created signal.
+- macro regime and higher-timeframe structure
+- trend, range, accumulation, distribution, correction and transition hypotheses
+- range boundaries, midpoint and range position
+- periodic liquidity levels and sweeps
+- structural response and trend-transition state
+- volatility expansion/contraction and abnormal volatility
+- structural invalidation quality
+- correction and stage probabilities
+- market-data quality and contradiction state
+
+When evidence is insufficient, the mechanism returns an insufficient/uncertain state instead of fabricating confidence.
 
 ## Evidence contract
 
-Every worker returns structured evidence with provenance. Examples include structure alignment, liquidity, volatility, macro risk, sentiment, bull/bear strength, risk status and historical similarity.
+Evidence is classified as PRIMARY, CONFIRMING, CONTEXTUAL, CONTRADICTORY or INSUFFICIENT. Contradictory high-quality evidence can block a SmartVibe setup. Evidence is never treated as a simple vote count.
 
-Workers do not write to `smartvibe/core/methodology/` and do not directly publish signals.
+## Data boundary
 
-## Authority gate
+Provider-specific market-data structures are normalized before analysis. Timestamps are UTC internally and session presentation uses the configured SmartVibe timezone. The default session reference is SAST / UTC+2; CRT timing remains configurable at 08:00 accumulation, 12:00 manipulation and 16:00 distribution.
 
-The gate evaluates the Core-created setup against the collected evidence. A setup is blocked when Core fails, blocking risk evidence exists, required structural conditions conflict, or the aggregated bear case outweighs the bull case.
+## Execution boundary
 
-The gate returns an explicit authority of `smartvibe-core` so downstream operational code cannot accidentally treat an external agent as the strategy owner.
+Only a SmartVibe-authorized execution intent can reach the broker adapter. Live execution additionally requires a valid live quote, account state, symbol specification, position limit, spread limit, structural risk validation, duplicate protection, entitlement finalization and an inactive emergency halt.
 
-## Licensing rule
+No demo, paper, simulated, or synthetic execution fallback exists.
 
-No external repository is copied wholesale into the mobile application. Integration is through adapters. If source code is later reused, its license, notices, attribution and redistribution requirements must be reviewed and preserved.
+## Licensing
 
-## QuantDinger status
-
-QuantDinger remains an integration candidate. Do not import code or dependencies until the actual upstream repository is directly accessible and its license, security posture, data sources, quantitative models, backtesting, portfolio/risk design, execution mechanisms and methodology compatibility have been reviewed.
-
-## Product boundary
-
-The customer-facing app exposes SmartVibe Trading Network, its methodology and appropriate user-facing explanations. Internal worker names, agent debate and provider details are implementation concerns, subject to any required legal/open-source attribution.
+External open-source libraries, APIs and infrastructure remain infrastructure/evidence sources. They are integrated through adapters or independent implementations and are not presented as SmartVibe-owned methodology. Required license notices and attribution remain in appropriate technical/legal locations.
