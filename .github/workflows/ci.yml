@@ -53,6 +53,8 @@ jobs:
           grep -q "marketType" lib/engine/market-data.ts
           grep -q "timezone: 'UTC'" lib/engine/market-data.ts
           grep -q "lookAheadDetected" lib/engine/market-data.ts
+          grep -q "missingCandles" lib/engine/market-data.ts
+          grep -q "providerConflict" lib/engine/market-data.ts
       - name: Verify non-leveraged accumulation boundary
         run: |
           grep -q "mode: 'ACCUMULATION_PLAN'" lib/engine/spot-accumulation.ts
@@ -73,6 +75,11 @@ jobs:
           grep -q '@APP.delete("/order/{ticket}")' mt5-bridge/app.py
           grep -q '@APP.post("/position/{ticket}/close")' mt5-bridge/app.py
           grep -q '@APP.get("/execution/{ticket}")' mt5-bridge/app.py
+      - name: Verify live execution bridge authentication boundary
+        run: |
+          grep -q "MT5_BRIDGE_TOKEN" supabase/functions/live-execute/index.ts
+          grep -q "if(!bridgeUrl||!bridgeToken)" supabase/functions/live-execute/index.ts
+          grep -q "authorization=\`Bearer \${bridgeToken}\`" supabase/functions/live-execute/index.ts
       - name: Verify supporting mechanism boundary
         run: |
           if grep -RInE "from ['\"].*smartvibe/(methodology|core)|import .*smartvibe/(methodology|core)" smartvibe/adapters smartvibe/mechanics smartvibe/intelligence smartvibe/decision 2>/dev/null; then
