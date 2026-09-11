@@ -1,299 +1,48 @@
 import type { MarketBar } from './market-data';
 
-export type StructuralRegime =
-  | 'BULLISH_TREND'
-  | 'BEARISH_TREND'
-  | 'RANGE'
-  | 'ACCUMULATION'
-  | 'DISTRIBUTION'
-  | 'CORRECTION'
-  | 'TRANSITION'
-  | 'HIGH_VOLATILITY'
-  | 'LOW_VOLATILITY'
-  | 'UNCERTAIN'
-  | 'INSUFFICIENT_DATA';
-
-export type StructureState = 'BULLISH' | 'BEARISH' | 'RANGE' | 'TRANSITION' | 'UNCERTAIN' | 'INSUFFICIENT_DATA';
-export type RangeLocation = 'LOWER_EXTREME' | 'LOWER_QUARTILE' | 'MID_RANGE' | 'UPPER_QUARTILE' | 'UPPER_EXTREME' | 'UNDEFINED';
-export type LiquidityEvent =
-  | 'NONE'
-  | 'PREVIOUS_HIGH_SWEEP'
-  | 'PREVIOUS_LOW_SWEEP'
-  | 'PREVIOUS_WEEK_HIGH_SWEEP'
-  | 'PREVIOUS_WEEK_LOW_SWEEP'
-  | 'PREVIOUS_MONTH_HIGH_SWEEP'
-  | 'PREVIOUS_MONTH_LOW_SWEEP'
-  | 'EQUAL_HIGH_SWEEP'
-  | 'EQUAL_LOW_SWEEP'
-  | 'ACCEPTANCE'
-  | 'REJECTION'
-  | 'FAILED_SWEEP'
-  | 'UNCONFIRMED';
-export type LiquidityResponse = 'NONE' | 'REJECTION' | 'ACCEPTANCE' | 'FAILED_SWEEP' | 'CONFIRMED_STRUCTURAL_REVERSAL' | 'UNCONFIRMED';
-export type TrendTransition = 'EARLY_TRANSITION' | 'POSSIBLE_TREND_FLIP' | 'CONFIRMED_TREND_FLIP' | 'FAILED_TREND_FLIP' | 'NO_STRUCTURAL_CHANGE' | 'UNCERTAIN';
-export type InvalidationStatus = 'VALID' | 'WEAK' | 'TOO_WIDE' | 'TOO_CLOSE' | 'UNCERTAIN';
+export type StructuralRegime = 'BULLISH_TREND'|'BEARISH_TREND'|'RANGE'|'ACCUMULATION'|'DISTRIBUTION'|'CORRECTION'|'TRANSITION'|'HIGH_VOLATILITY'|'LOW_VOLATILITY'|'UNCERTAIN'|'INSUFFICIENT_DATA';
+export type StructureState = 'BULLISH'|'BEARISH'|'RANGE'|'TRANSITION'|'UNCERTAIN'|'INSUFFICIENT_DATA';
+export type RangeLocation = 'LOWER_EXTREME'|'LOWER_QUARTILE'|'MID_RANGE'|'UPPER_QUARTILE'|'UPPER_EXTREME'|'UNDEFINED';
+export type LiquidityEvent = 'NONE'|'PREVIOUS_HIGH_SWEEP'|'PREVIOUS_LOW_SWEEP'|'PREVIOUS_WEEK_HIGH_SWEEP'|'PREVIOUS_WEEK_LOW_SWEEP'|'PREVIOUS_MONTH_HIGH_SWEEP'|'PREVIOUS_MONTH_LOW_SWEEP'|'EQUAL_HIGH_SWEEP'|'EQUAL_LOW_SWEEP'|'ACCEPTANCE'|'REJECTION'|'FAILED_SWEEP'|'UNCONFIRMED';
+export type LiquidityResponse = 'NONE'|'REJECTION'|'ACCEPTANCE'|'FAILED_SWEEP'|'CONFIRMED_STRUCTURAL_REVERSAL'|'UNCONFIRMED';
+export type TrendTransition = 'EARLY_TRANSITION'|'POSSIBLE_TREND_FLIP'|'CONFIRMED_TREND_FLIP'|'FAILED_TREND_FLIP'|'NO_STRUCTURAL_CHANGE'|'UNCERTAIN';
+export type CorrectionStage = 'NONE'|'EARLY_CORRECTION'|'SHOCK_IMPULSE'|'RELIEF_MOVE'|'DEEPER_CORRECTION'|'CAPITULATION'|'LATE_CORRECTION'|'POST_CORRECTION_TRANSITION';
+export type InvalidationStatus = 'VALID'|'WEAK'|'TOO_WIDE'|'TOO_CLOSE'|'UNCERTAIN';
 
 export type StructuralEvidence = {
-  macroRegime: StructuralRegime;
-  htfStructure: StructureState;
-  intermediateStructure: StructureState;
-  executionStructure: StructureState;
-  rangeState: 'EXPANSION' | 'CONTRACTION' | 'STABLE' | 'INVALIDATED' | 'UNDEFINED';
-  rangeHigh: number | null;
-  rangeLow: number | null;
-  rangeMidpoint: number | null;
-  rangePositionPercent: number | null;
-  rangeLocation: RangeLocation;
-  liquidityEvent: LiquidityEvent;
-  liquidityResponse: LiquidityResponse;
-  periodicLevels: {
-    previousDayHigh: number | null;
-    previousDayLow: number | null;
-    previousWeekHigh: number | null;
-    previousWeekLow: number | null;
-    previousMonthHigh: number | null;
-    previousMonthLow: number | null;
-  };
-  trendTransition: TrendTransition;
-  correctionProbability: number;
-  stageProbability: number;
-  possibleCorrectionStage: 'NONE' | 'EARLY_CORRECTION' | 'RELIEF_MOVE' | 'DEEPER_CORRECTION' | 'CAPITULATION' | 'LATE_CORRECTION' | 'POST_CORRECTION_TRANSITION';
-  volatilityState: 'EXPANDING' | 'CONTRACTING' | 'NORMAL' | 'ABNORMAL' | 'UNKNOWN';
-  atr: number | null;
-  structuralInvalidationPrice: number | null;
-  invalidationStatus: InvalidationStatus;
-  rangeRegimeProbability: number;
-  trendProbability: number;
-  compressionProbability: number;
-  expansionProbability: number;
-  supportingBias: 'BUY' | 'SELL' | 'NEUTRAL' | 'UNCONFIRMED';
-  supportingConfidence: number;
-  dataQuality: 'HIGH' | 'MEDIUM' | 'LOW' | 'INSUFFICIENT';
-  contradiction: boolean;
-  requiresConfirmation: boolean;
+  macroRegime: StructuralRegime; htfStructure: StructureState; intermediateStructure: StructureState; executionStructure: StructureState;
+  rangeState: 'EXPANSION'|'CONTRACTION'|'STABLE'|'INVALIDATED'|'UNDEFINED'; rangeHigh:number|null; rangeLow:number|null; rangeMidpoint:number|null;
+  rangePositionPercent:number|null; rangeLocation:RangeLocation;
+  liquidityEvent:LiquidityEvent; liquidityResponse:LiquidityResponse;
+  periodicLevels:{previousDayHigh:number|null;previousDayLow:number|null;previousWeekHigh:number|null;previousWeekLow:number|null;previousMonthHigh:number|null;previousMonthLow:number|null};
+  trendTransition:TrendTransition; correctionProbability:number; stageProbability:number; possibleCorrectionStage:CorrectionStage;
+  volatilityState:'EXPANDING'|'CONTRACTING'|'NORMAL'|'ABNORMAL'|'UNKNOWN'; atr:number|null;
+  structuralInvalidationPrice:number|null; invalidationStatus:InvalidationStatus;
+  rangeRegimeProbability:number; trendProbability:number; compressionProbability:number; expansionProbability:number;
+  supportingBias:'BUY'|'SELL'|'NEUTRAL'|'UNCONFIRMED'; supportingConfidence:number;
+  dataQuality:'HIGH'|'MEDIUM'|'LOW'|'INSUFFICIENT'; contradiction:boolean; requiresConfirmation:boolean;
 };
 
-export type SupportingMechanismInput = {
-  monthly?: MarketBar[];
-  weekly?: MarketBar[];
-  daily?: MarketBar[];
-  h4?: MarketBar[];
-  h1?: MarketBar[];
-  execution?: MarketBar[];
-  direction?: 'BUY' | 'SELL';
-  entry?: number;
-  now?: Date;
-};
+export type SupportingMechanismInput = { monthly?:MarketBar[]; weekly?:MarketBar[]; daily?:MarketBar[]; h4?:MarketBar[]; h1?:MarketBar[]; execution?:MarketBar[]; direction?:'BUY'|'SELL'; entry?:number; now?:Date };
+const clamp=(n:number)=>Math.max(0,Math.min(1,Number.isFinite(n)?n:0));
+const mean=(a:number[])=>a.length?a.reduce((s,n)=>s+n,0)/a.length:null;
+const sort=(b:MarketBar[])=>[...b].sort((a,c)=>Date.parse(a.timestamp)-Date.parse(c.timestamp));
+const atr=(b:MarketBar[],p=14)=>b.length<p+1?null:mean(b.slice(1).map((x,i)=>Math.max(x.high-x.low,Math.abs(x.high-b[i].close),Math.abs(x.low-b[i].close))).slice(-p));
+const structure=(b:MarketBar[]):StructureState=>{if(b.length<12)return'INSUFFICIENT_DATA';const a=b.slice(-6),z=b.slice(-12,-6),ah=Math.max(...a.map(x=>x.high)),al=Math.min(...a.map(x=>x.low)),zh=Math.max(...z.map(x=>x.high)),zl=Math.min(...z.map(x=>x.low)),t=Math.max(Math.abs(zh)*.0001,1e-12);if(ah>zh+t&&al>zl+t)return'BULLISH';if(ah<zh-t&&al<zl-t)return'BEARISH';if(Math.abs(ah-zh)<=t&&Math.abs(al-zl)<=t)return'RANGE';return'TRANSITION'};
+const period=(b:MarketBar[])=>b.length?{high:Math.max(...b.map(x=>x.high)),low:Math.min(...b.map(x=>x.low))}:{high:null,low:null};
+function previous(b:MarketBar[],ms:number){if(b.length<2)return period([]);const s=sort(b),bucket=Math.floor(Date.parse(s[s.length-1].timestamp)/ms);return period(s.filter(x=>Math.floor(Date.parse(x.timestamp)/ms)===bucket-1));}
+function range(b:MarketBar[]){if(!b.length)return null;const high=Math.max(...b.map(x=>x.high)),low=Math.min(...b.map(x=>x.low));if(!(high>low))return null;const pos=clamp((b[b.length-1].close-low)/(high-low));return{high,low,midpoint:(high+low)/2,pos};}
+function location(p:number|null):RangeLocation{return p===null?'UNDEFINED':p<=.1?'LOWER_EXTREME':p<=.25?'LOWER_QUARTILE':p<.75?'MID_RANGE':p<.9?'UPPER_QUARTILE':'UPPER_EXTREME'}
+function transition(b:MarketBar[]):TrendTransition{if(b.length<24)return'UNCERTAIN';const a=structure(b.slice(-12)),z=structure(b.slice(-24,-12));if(a===z||a==='RANGE')return'NO_STRUCTURAL_CHANGE';if((z==='BEARISH'&&a==='BULLISH')||(z==='BULLISH'&&a==='BEARISH')){const last=b[b.length-1],ref=b.slice(-13,-1);const confirmed=a==='BULLISH'?last.close>Math.max(...ref.map(x=>x.high)):last.close<Math.min(...ref.map(x=>x.low));return confirmed?'CONFIRMED_TREND_FLIP':'POSSIBLE_TREND_FLIP'}return'EARLY_TRANSITION'}
+function liquidity(b:MarketBar[],levels:StructuralEvidence['periodicLevels']):{event:LiquidityEvent;response:LiquidityResponse}{if(b.length<20)return{event:'UNCONFIRMED',response:'UNCONFIRMED'};const last=b[b.length-1],local=b.slice(-21,-1),hi=Math.max(...local.map(x=>x.high)),lo=Math.min(...local.map(x=>x.low));const checks:[number|null,number|null,LiquidityEvent,LiquidityEvent][]=[[levels.previousMonthHigh,levels.previousMonthLow,'PREVIOUS_MONTH_HIGH_SWEEP','PREVIOUS_MONTH_LOW_SWEEP'],[levels.previousWeekHigh,levels.previousWeekLow,'PREVIOUS_WEEK_HIGH_SWEEP','PREVIOUS_WEEK_LOW_SWEEP'],[levels.previousDayHigh,levels.previousDayLow,'PREVIOUS_HIGH_SWEEP','PREVIOUS_LOW_SWEEP'],[hi,lo,'PREVIOUS_HIGH_SWEEP','PREVIOUS_LOW_SWEEP']];for(const[h,l,he,le]of checks){if(h!==null&&last.high>h&&last.close<h)return{event:he,response:'REJECTION'};if(l!==null&&last.low<l&&last.close>l)return{event:le,response:'REJECTION'}}if(last.high>hi||last.low<lo)return{event:'ACCEPTANCE',response:'ACCEPTANCE'};return{event:'NONE',response:'NONE'}}
+function quality(b:MarketBar[],now:Date):StructuralEvidence['dataQuality']{if(b.length<30)return'INSUFFICIENT';let bad=0,s=sort(b).slice(-30);for(let i=0;i<s.length;i++){const x=s[i],t=Date.parse(x.timestamp);if(!Number.isFinite(t)||t>now.getTime()+300000)bad++;if(![x.open,x.high,x.low,x.close].every(Number.isFinite)||x.high<Math.max(x.open,x.close)||x.low>Math.min(x.open,x.close)||x.high<x.low)bad++;if(i&&t<=Date.parse(s[i-1].timestamp))bad++}return bad>2?'LOW':bad?'MEDIUM':'HIGH'}
+function correction(b:MarketBar[],reg:StructuralRegime,tr:TrendTransition,v:'EXPANDING'|'CONTRACTING'|'NORMAL'|'ABNORMAL'|'UNKNOWN'){if(b.length<30)return{p:0,s:0,stage:'NONE' as CorrectionStage};const a=atr(b),recent=b.slice(-8),prior=b.slice(-24,-8),imp=Math.abs(prior[prior.length-1].close-prior[0].close),move=Math.abs(recent[recent.length-1].close-recent[0].close),ratio=imp?move/imp:0,p=clamp((reg==='CORRECTION'?.55:.12)+(tr==='POSSIBLE_TREND_FLIP'?.18:0)+(v==='CONTRACTING'?.1:0));let stage:CorrectionStage='NONE';if(p>=.55){if(a&&move>a*3)stage='SHOCK_IMPULSE';else if(ratio>.7)stage='DEEPER_CORRECTION';else if(ratio<.25)stage='RELIEF_MOVE';else stage='LATE_CORRECTION'}return{p,s:clamp(p*(ratio?.7+Math.min(ratio,1)*.3:.5)),stage}}
 
-const clamp = (n: number) => Math.max(0, Math.min(1, Number.isFinite(n) ? n : 0));
-const mean = (values: number[]) => values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : null;
-const sorted = (bars: MarketBar[]) => [...bars].sort((a, b) => Date.parse(a.timestamp) - Date.parse(b.timestamp));
-
-function trueRange(bars: MarketBar[]): number[] {
-  return bars.slice(1).map((bar, index) => {
-    const previous = bars[index];
-    return Math.max(bar.high - bar.low, Math.abs(bar.high - previous.close), Math.abs(bar.low - previous.close));
-  });
-}
-
-function averageTrueRange(bars: MarketBar[], period = 14): number | null {
-  if (bars.length < period + 1) return null;
-  const values = trueRange(bars).slice(-period);
-  return mean(values);
-}
-
-function structure(bars: MarketBar[]): StructureState {
-  if (bars.length < 12) return 'INSUFFICIENT_DATA';
-  const recent = bars.slice(-6);
-  const prior = bars.slice(-12, -6);
-  const recentHigh = Math.max(...recent.map((bar) => bar.high));
-  const recentLow = Math.min(...recent.map((bar) => bar.low));
-  const priorHigh = Math.max(...prior.map((bar) => bar.high));
-  const priorLow = Math.min(...prior.map((bar) => bar.low));
-  const highChange = recentHigh - priorHigh;
-  const lowChange = recentLow - priorLow;
-  const tolerance = Math.max(Math.abs(priorHigh) * 0.0001, 1e-12);
-  if (highChange > tolerance && lowChange > tolerance) return 'BULLISH';
-  if (highChange < -tolerance && lowChange < -tolerance) return 'BEARISH';
-  if (Math.abs(highChange) <= tolerance && Math.abs(lowChange) <= tolerance) return 'RANGE';
-  return 'TRANSITION';
-}
-
-function periodHighLow(bars: MarketBar[]): { high: number | null; low: number | null } {
-  if (!bars.length) return { high: null, low: null };
-  return { high: Math.max(...bars.map((bar) => bar.high)), low: Math.min(...bars.map((bar) => bar.low)) };
-}
-
-function previousPeriodLevels(bars: MarketBar[], periodMs: number): { high: number | null; low: number | null } {
-  if (bars.length < 2) return { high: null, low: null };
-  const ordered = sorted(bars);
-  const lastTime = Date.parse(ordered[ordered.length - 1].timestamp);
-  const currentBucket = Math.floor(lastTime / periodMs);
-  const previous = ordered.filter((bar) => Math.floor(Date.parse(bar.timestamp) / periodMs) === currentBucket - 1);
-  return periodHighLow(previous);
-}
-
-function rangeStats(bars: MarketBar[]) {
-  if (!bars.length) return null;
-  const high = Math.max(...bars.map((bar) => bar.high));
-  const low = Math.min(...bars.map((bar) => bar.low));
-  if (!(high > low)) return null;
-  const close = bars[bars.length - 1].close;
-  const position = clamp((close - low) / (high - low));
-  return { high, low, midpoint: (high + low) / 2, position, width: high - low };
-}
-
-function liquidity(bars: MarketBar[], periodic: StructuralEvidence['periodicLevels']): { event: LiquidityEvent; response: LiquidityResponse } {
-  if (bars.length < 20) return { event: 'UNCONFIRMED', response: 'UNCONFIRMED' };
-  const last = bars[bars.length - 1];
-  const previous = bars.slice(-21, -1);
-  const localHigh = Math.max(...previous.map((bar) => bar.high));
-  const localLow = Math.min(...previous.map((bar) => bar.low));
-  const check = (high: number | null, low: number | null, highEvent: LiquidityEvent, lowEvent: LiquidityEvent) => {
-    if (high !== null && last.high > high && last.close < high) return { event: highEvent, response: 'REJECTION' as LiquidityResponse };
-    if (low !== null && last.low < low && last.close > low) return { event: lowEvent, response: 'REJECTION' as LiquidityResponse };
-    return null;
-  };
-  return check(periodic.previousMonthHigh, periodic.previousMonthLow, 'PREVIOUS_MONTH_HIGH_SWEEP', 'PREVIOUS_MONTH_LOW_SWEEP')
-    ?? check(periodic.previousWeekHigh, periodic.previousWeekLow, 'PREVIOUS_WEEK_HIGH_SWEEP', 'PREVIOUS_WEEK_LOW_SWEEP')
-    ?? check(periodic.previousDayHigh, periodic.previousDayLow, 'PREVIOUS_HIGH_SWEEP', 'PREVIOUS_LOW_SWEEP')
-    ?? check(localHigh, localLow, 'PREVIOUS_HIGH_SWEEP', 'PREVIOUS_LOW_SWEEP')
-    ?? (last.high > localHigh ? { event: 'ACCEPTANCE', response: 'ACCEPTANCE' } : last.low < localLow ? { event: 'ACCEPTANCE', response: 'ACCEPTANCE' } : { event: 'NONE', response: 'NONE' });
-}
-
-function transition(bars: MarketBar[]): TrendTransition {
-  if (bars.length < 24) return 'UNCERTAIN';
-  const recent = structure(bars.slice(-12));
-  const prior = structure(bars.slice(-24, -12));
-  if (recent === prior || recent === 'RANGE') return 'NO_STRUCTURAL_CHANGE';
-  if ((prior === 'BEARISH' && recent === 'BULLISH') || (prior === 'BULLISH' && recent === 'BEARISH')) {
-    const last = bars[bars.length - 1];
-    const reference = bars.slice(-13, -1);
-    const breakConfirmed = recent === 'BULLISH'
-      ? last.close > Math.max(...reference.map((bar) => bar.high))
-      : last.close < Math.min(...reference.map((bar) => bar.low));
-    return breakConfirmed ? 'CONFIRMED_TREND_FLIP' : 'POSSIBLE_TREND_FLIP';
-  }
-  return 'EARLY_TRANSITION';
-}
-
-function correctionContext(bars: MarketBar[], regime: StructuralRegime, tr: TrendTransition, volatilityState: StructuralEvidence['volatilityState']) {
-  if (bars.length < 30) return { probability: 0, stageProbability: 0, stage: 'NONE' as const };
-  const atr = averageTrueRange(bars);
-  const recent = bars.slice(-8);
-  const prior = bars.slice(-24, -8);
-  const impulse = prior.length ? Math.abs(prior[prior.length - 1].close - prior[0].close) : 0;
-  const recentMove = recent.length ? Math.abs(recent[recent.length - 1].close - recent[0].close) : 0;
-  const ratio = impulse > 0 ? recentMove / impulse : 0;
-  const probability = clamp((regime === 'CORRECTION' ? 0.55 : 0.12) + (tr === 'POSSIBLE_TREND_FLIP' ? 0.18 : 0) + (volatilityState === 'CONTRACTING' ? 0.1 : 0));
-  let stage: StructuralEvidence['possibleCorrectionStage'] = 'NONE';
-  if (probability >= 0.55) {
-    if (atr && recentMove > atr * 3) stage = 'SHOCK / IMPULSE' as never;
-    else if (ratio > 0.7) stage = 'DEEPER_CORRECTION';
-    else if (ratio < 0.25) stage = 'RELIEF_MOVE';
-    else stage = 'LATE_CORRECTION';
-  }
-  return { probability, stageProbability: clamp(probability * (ratio > 0 ? 0.7 + Math.min(ratio, 1) * 0.3 : 0.5)), stage };
-}
-
-function classifyRange(position: number | null): RangeLocation {
-  if (position === null) return 'UNDEFINED';
-  if (position <= 0.1) return 'LOWER_EXTREME';
-  if (position <= 0.25) return 'LOWER_QUARTILE';
-  if (position < 0.75) return 'MID_RANGE';
-  if (position < 0.9) return 'UPPER_QUARTILE';
-  return 'UPPER_EXTREME';
-}
-
-function dataQuality(bars: MarketBar[], now: Date): StructuralEvidence['dataQuality'] {
-  if (bars.length < 30) return 'INSUFFICIENT';
-  let bad = 0;
-  const recent = sorted(bars).slice(-30);
-  for (let i = 0; i < recent.length; i += 1) {
-    const bar = recent[i];
-    const timestamp = Date.parse(bar.timestamp);
-    if (!Number.isFinite(timestamp) || timestamp > now.getTime() + 300_000) bad += 1;
-    if (![bar.open, bar.high, bar.low, bar.close].every(Number.isFinite) || bar.high < Math.max(bar.open, bar.close) || bar.low > Math.min(bar.open, bar.close) || bar.high < bar.low) bad += 1;
-    if (i > 0 && timestamp <= Date.parse(recent[i - 1].timestamp)) bad += 1;
-  }
-  if (bad > 2) return 'LOW';
-  if (bad) return 'MEDIUM';
-  return 'HIGH';
-}
-
-export function analyzeSupportingMechanism(input: SupportingMechanismInput): StructuralEvidence {
-  const now = input.now ?? new Date();
-  const monthly = sorted(input.monthly ?? []);
-  const weekly = sorted(input.weekly ?? []);
-  const daily = sorted(input.daily ?? []);
-  const h4 = sorted(input.h4 ?? []);
-  const h1 = sorted(input.h1 ?? []);
-  const execution = sorted(input.execution ?? []);
-  const source = daily.length ? daily : h4.length ? h4 : h1.length ? h1 : execution;
-  const insufficient: StructuralEvidence = {
-    macroRegime: 'INSUFFICIENT_DATA', htfStructure: 'INSUFFICIENT_DATA', intermediateStructure: 'INSUFFICIENT_DATA', executionStructure: 'INSUFFICIENT_DATA',
-    rangeState: 'UNDEFINED', rangeHigh: null, rangeLow: null, rangeMidpoint: null, rangePositionPercent: null, rangeLocation: 'UNDEFINED',
-    liquidityEvent: 'UNCONFIRMED', liquidityResponse: 'UNCONFIRMED',
-    periodicLevels: { previousDayHigh: null, previousDayLow: null, previousWeekHigh: null, previousWeekLow: null, previousMonthHigh: null, previousMonthLow: null },
-    trendTransition: 'UNCERTAIN', correctionProbability: 0, stageProbability: 0, possibleCorrectionStage: 'NONE', volatilityState: 'UNKNOWN', atr: null,
-    structuralInvalidationPrice: null, invalidationStatus: 'UNCERTAIN', rangeRegimeProbability: 0, trendProbability: 0, compressionProbability: 0, expansionProbability: 0,
-    supportingBias: 'UNCONFIRMED', supportingConfidence: 0, dataQuality: 'INSUFFICIENT', contradiction: true, requiresConfirmation: true,
-  };
-  if (source.length < 30) return insufficient;
-
-  const range = rangeStats(source.slice(-30));
-  if (!range) return insufficient;
-  const htf = structure(weekly.length ? weekly : daily);
-  const intermediate = structure(daily.length ? daily : h4);
-  const exec = structure(execution.length ? execution : h1.length ? h1 : source);
-  const atr = averageTrueRange(source);
-  const recentAtr = averageTrueRange(source.slice(-15));
-  const volatilityState: StructuralEvidence['volatilityState'] = atr && recentAtr
-    ? recentAtr > atr * 1.5 ? 'ABNORMAL' : recentAtr > atr * 1.15 ? 'EXPANDING' : recentAtr < atr * 0.8 ? 'CONTRACTING' : 'NORMAL'
-    : 'UNKNOWN';
-  const rangeState = atr && recentAtr ? recentAtr > atr * 1.25 ? 'EXPANSION' : recentAtr < atr * 0.75 ? 'CONTRACTION' : 'STABLE' : 'UNDEFINED';
-  const periodicLevels = {
-    previousDayHigh: previousPeriodLevels(daily, 86_400_000).high,
-    previousDayLow: previousPeriodLevels(daily, 86_400_000).low,
-    previousWeekHigh: previousPeriodLevels(weekly, 604_800_000).high,
-    previousWeekLow: previousPeriodLevels(weekly, 604_800_000).low,
-    previousMonthHigh: previousPeriodLevels(monthly, 2_592_000_000).high,
-    previousMonthLow: previousPeriodLevels(monthly, 2_592_000_000).low,
-  };
-  const liquidityResult = liquidity(source, periodicLevels);
-  const trendTransition = transition(daily.length ? daily : source);
-  const trendProbability = clamp((htf === 'BULLISH' || htf === 'BEARISH' ? 0.35 : 0) + (intermediate === 'BULLISH' || intermediate === 'BEARISH' ? 0.3 : 0) + (exec === 'BULLISH' || exec === 'BEARISH' ? 0.2 : 0) + (trendTransition === 'CONFIRMED_TREND_FLIP' ? 0.15 : 0));
-  const macroRegime: StructuralRegime = htf === 'BULLISH' ? 'BULLISH_TREND' : htf === 'BEARISH' ? 'BEARISH_TREND' : intermediate === 'BULLISH' ? 'BULLISH_TREND' : intermediate === 'BEARISH' ? 'BEARISH_TREND' : rangeState === 'CONTRACTION' ? 'CORRECTION' : 'RANGE';
-  const rangeRegimeProbability = clamp(1 - trendProbability);
-  const compressionProbability = rangeState === 'CONTRACTION' ? 0.8 : rangeState === 'STABLE' ? 0.35 : 0.1;
-  const expansionProbability = rangeState === 'EXPANSION' ? 0.8 : rangeState === 'STABLE' ? 0.3 : 0.1;
-  const correction = correctionContext(source, macroRegime, trendTransition, volatilityState);
-  const invalidation = input.direction && input.entry
-    ? input.direction === 'BUY' ? Math.min(...source.slice(-12).map((bar) => bar.low)) : Math.max(...source.slice(-12).map((bar) => bar.high))
-    : null;
-  const distance = invalidation !== null && input.entry ? Math.abs(input.entry - invalidation) : null;
-  const invalidationStatus: InvalidationStatus = distance === null || !atr ? 'UNCERTAIN' : distance < atr * 0.35 ? 'TOO_CLOSE' : distance > atr * 4 ? 'TOO_WIDE' : 'VALID';
-  const aligned = input.direction === 'BUY'
-    ? macroRegime === 'BULLISH_TREND' || intermediate === 'BULLISH' || htf === 'BULLISH'
-    : input.direction === 'SELL'
-      ? macroRegime === 'BEARISH_TREND' || intermediate === 'BEARISH' || htf === 'BEARISH'
-      : false;
-  const contradiction = input.direction === 'BUY'
-    ? htf === 'BEARISH' && intermediate === 'BEARISH'
-    : input.direction === 'SELL'
-      ? htf === 'BULLISH' && intermediate === 'BULLISH'
-      : false;
-  const rangeLocation = classifyRange(range.position);
-  const supportingBias = contradiction ? 'UNCONFIRMED' : aligned ? input.direction ?? 'NEUTRAL' : 'NEUTRAL';
-  const quality = dataQuality(source, now);
-  const confidence = clamp((quality === 'HIGH' ? 0.35 : quality === 'MEDIUM' ? 0.2 : 0) + trendProbability * 0.35 + (liquidityResult.response === 'REJECTION' ? 0.15 : 0) + (aligned ? 0.15 : 0));
-  return {
-    macroRegime, htfStructure: htf, intermediateStructure: intermediate, executionStructure: exec, rangeState,
-    rangeHigh: range.high, rangeLow: range.low, rangeMidpoint: range.midpoint, rangePositionPercent: Math.round(range.position * 10000) / 100,
-    rangeLocation, liquidityEvent: liquidityResult.event, liquidityResponse: liquidityResult.response, periodicLevels, trendTransition,
-    correctionProbability: correction.probability, stageProbability: correction.stageProbability, possibleCorrectionStage: correction.stage,
-    volatilityState, atr, structuralInvalidationPrice: invalidation, invalidationStatus, rangeRegimeProbability, trendProbability,
-    compressionProbability, expansionProbability, supportingBias, supportingConfidence: confidence, dataQuality: quality,
-    contradiction, requiresConfirmation: quality !== 'HIGH' || contradiction || liquidityResult.response === 'UNCONFIRMED' || invalidationStatus !== 'VALID',
-  };
+export function analyzeSupportingMechanism(input:SupportingMechanismInput):StructuralEvidence{
+ const now=input.now??new Date(),monthly=sort(input.monthly??[]),weekly=sort(input.weekly??[]),daily=sort(input.daily??[]),h4=sort(input.h4??[]),h1=sort(input.h1??[]),execution=sort(input.execution??[]),source=daily.length?daily:h4.length?h4:h1.length?h1:execution;
+ const empty:StructuralEvidence={macroRegime:'INSUFFICIENT_DATA',htfStructure:'INSUFFICIENT_DATA',intermediateStructure:'INSUFFICIENT_DATA',executionStructure:'INSUFFICIENT_DATA',rangeState:'UNDEFINED',rangeHigh:null,rangeLow:null,rangeMidpoint:null,rangePositionPercent:null,rangeLocation:'UNDEFINED',liquidityEvent:'UNCONFIRMED',liquidityResponse:'UNCONFIRMED',periodicLevels:{previousDayHigh:null,previousDayLow:null,previousWeekHigh:null,previousWeekLow:null,previousMonthHigh:null,previousMonthLow:null},trendTransition:'UNCERTAIN',correctionProbability:0,stageProbability:0,possibleCorrectionStage:'NONE',volatilityState:'UNKNOWN',atr:null,structuralInvalidationPrice:null,invalidationStatus:'UNCERTAIN',rangeRegimeProbability:0,trendProbability:0,compressionProbability:0,expansionProbability:0,supportingBias:'UNCONFIRMED',supportingConfidence:0,dataQuality:'INSUFFICIENT',contradiction:true,requiresConfirmation:true};
+ if(source.length<30)return empty;const r=range(source.slice(-30));if(!r)return empty;const htf=structure(weekly.length?weekly:daily),mid=structure(daily.length?daily:h4),exec=structure(execution.length?execution:h1.length?h1:source),a=atr(source),ra=atr(source.slice(-15));
+ const vol=a&&ra?(ra>a*1.5?'ABNORMAL':ra>a*1.15?'EXPANDING':ra<a*.8?'CONTRACTING':'NORMAL'):'UNKNOWN';const rs=a&&ra?(ra>a*1.25?'EXPANSION':ra<a*.75?'CONTRACTION':'STABLE'):'UNDEFINED';const levels={previousDayHigh:previous(daily,86400000).high,previousDayLow:previous(daily,86400000).low,previousWeekHigh:previous(weekly,604800000).high,previousWeekLow:previous(weekly,604800000).low,previousMonthHigh:previous(monthly,2592000000).high,previousMonthLow:previous(monthly,2592000000).low};
+ const liq=liquidity(source,levels),tr=transition(daily.length?daily:source),tp=clamp((htf==='BULLISH'||htf==='BEARISH'?.35:0)+(mid==='BULLISH'||mid==='BEARISH'?.3:0)+(exec==='BULLISH'||exec==='BEARISH'?.2:0)+(tr==='CONFIRMED_TREND_FLIP'?.15:0));const reg:StructuralRegime=htf==='BULLISH'?'BULLISH_TREND':htf==='BEARISH'?'BEARISH_TREND':mid==='BULLISH'?'BULLISH_TREND':mid==='BEARISH'?'BEARISH_TREND':rs==='CONTRACTION'?'CORRECTION':'RANGE';const q=quality(source,now),corr=correction(source,reg,tr,vol),inv=input.direction&&input.entry?(input.direction==='BUY'?Math.min(...source.slice(-12).map(x=>x.low)):Math.max(...source.slice(-12).map(x=>x.high))):null,dist=inv!==null&&input.entry?Math.abs(input.entry-inv):null,invStatus:InvalidationStatus=dist===null||!a?'UNCERTAIN':dist<a*.35?'TOO_CLOSE':dist>a*4?'TOO_WIDE':'VALID';const contradiction=input.direction==='BUY'?htf==='BEARISH'&&mid==='BEARISH':input.direction==='SELL'?htf==='BULLISH'&&mid==='BULLISH':false;const aligned=input.direction==='BUY'?(reg==='BULLISH_TREND'||mid==='BULLISH'||htf==='BULLISH'):input.direction==='SELL'?(reg==='BEARISH_TREND'||mid==='BEARISH'||htf==='BEARISH'):false;const conf=clamp((q==='HIGH'?.35:q==='MEDIUM'?.2:0)+tp*.35+(liq.response==='REJECTION'?.15:0)+(aligned?.15:0));
+ return{macroRegime:reg,htfStructure:htf,intermediateStructure:mid,executionStructure:exec,rangeState:rs,rangeHigh:r.high,rangeLow:r.low,rangeMidpoint:r.midpoint,rangePositionPercent:Math.round(r.pos*10000)/100,rangeLocation:location(r.pos),liquidityEvent:liq.event,liquidityResponse:liq.response,periodicLevels:levels,trendTransition:tr,correctionProbability:corr.p,stageProbability:corr.s,possibleCorrectionStage:corr.stage,volatilityState:vol,atr:a,structuralInvalidationPrice:inv,invalidationStatus:invStatus,rangeRegimeProbability:clamp(1-tp),trendProbability:tp,compressionProbability:rs==='CONTRACTION'?.8:rs==='STABLE'?.35:.1,expansionProbability:rs==='EXPANSION'?.8:rs==='STABLE'?.3:.1,supportingBias:contradiction?'UNCONFIRMED':aligned?(input.direction??'NEUTRAL'):'NEUTRAL',supportingConfidence:conf,dataQuality:q,contradiction,requiresConfirmation:q!=='HIGH'||contradiction||liq.response==='UNCONFIRMED'||invStatus!=='VALID'};
 }
