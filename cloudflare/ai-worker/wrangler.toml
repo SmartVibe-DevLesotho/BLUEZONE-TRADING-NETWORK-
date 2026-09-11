@@ -1,0 +1,8 @@
+name = "smartvibe-ai-gateway"
+main = "src/index.ts"
+compatibility_date = "2026-09-11"
+
+[ai]
+
+[vars]
+AI_MODEL = "@cf/meta/llama-3.1-8b-instruct"
