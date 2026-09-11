@@ -26,9 +26,13 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
 
     if (body.action === 'list') {
-      const { data: licenses, error: e } = await supabase.from('licenses').select('id,label,plan_key,package_key,active,expires_at,max_activations,activation_count,issued_at,revoked_at,included_signals,used_signals,carryover_signals,carryover_credit_lsl,price_paid_lsl,renewal_of_license_id').eq('issued_by', data.user.id).order('issued_at', { ascending: false }).limit(100);
-      if (e) throw e;
-      return json({ licenses: licenses ?? [] });
+      const [{ data: licenses, error: licenseError }, { data: packages, error: packageError }] = await Promise.all([
+        supabase.from('licenses').select('id,label,plan_key,package_key,active,expires_at,max_activations,activation_count,issued_at,revoked_at,included_signals,used_signals,carryover_signals,carryover_credit_lsl,price_paid_lsl,renewal_of_license_id').eq('issued_by', data.user.id).order('issued_at', { ascending: false }).limit(100),
+        supabase.from('smartvibe_subscription_packages').select('package_key,plan_key,display_name,duration_days,price_lsl,included_signals,scanner_access,whatsapp_group_access,all_services_access').eq('active', true).order('price_lsl', { ascending: true }),
+      ]);
+      if (licenseError) throw licenseError;
+      if (packageError) throw packageError;
+      return json({ authorized: true, licenses: licenses ?? [], packages: packages ?? [] });
     }
 
     if (body.action === 'revoke') {
