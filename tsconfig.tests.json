@@ -8,5 +8,13 @@
     "skipLibCheck": true,
     "outDir": ".test-build"
   },
-  "include": ["smartvibe/adapters/types.ts", "smartvibe/decision/gate.ts", "smartvibe/tests/final-decision-firewall.test.ts"]
+  "include": [
+    "smartvibe/adapters/types.ts",
+    "smartvibe/decision/gate.ts",
+    "smartvibe/decision/evidence.ts",
+    "smartvibe/intelligence/market-data.ts",
+    "smartvibe/intelligence/supporting-mechanism.ts",
+    "smartvibe/tests/final-decision-firewall.test.ts",
+    "smartvibe/tests/supporting-mechanism.test.ts"
+  ]
 }
