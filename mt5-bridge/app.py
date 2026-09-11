@@ -1,8 +1,8 @@
-"""Hardened HTTP bridge between SmartVibe Trading Network and a local MT5 terminal.
+"""Authenticated live broker bridge between SmartVibe Trading Network and MT5.
 
-This service must run on the same Windows host as the MetaTrader 5 terminal.
-It never implements trading strategy logic; it exposes broker state and order
-operations only. Authentication is mandatory when MT5_BRIDGE_TOKEN is set.
+The bridge is an infrastructure adapter only. It contains no strategy logic and
+has no simulated or paper-trading mode. Run it on the same host as the MT5
+terminal and expose it only through a private authenticated network path.
 """
 from __future__ import annotations
 
@@ -15,7 +15,7 @@ from fastapi.responses import JSONResponse
 
 try:
     import MetaTrader5 as mt5
-except ImportError:  # pragma: no cover - exercised only when the host is misconfigured
+except ImportError:  # pragma: no cover
     mt5 = None
 
 APP = FastAPI(title="SmartVibe Trading Network MT5 Bridge", docs_url=None, redoc_url=None)
@@ -39,6 +39,11 @@ def require_mt5() -> Any:
         raise HTTPException(503, "MetaTrader 5 Python package is unavailable.")
     if not mt5.initialize(path=MT5_PATH):
         raise HTTPException(503, "MetaTrader 5 terminal initialization failed.")
+    try:
+        ensure_login(mt5)
+    except Exception:
+        mt5.shutdown()
+        raise
     return mt5
 
 
@@ -69,6 +74,55 @@ def snapshot(api: Any) -> dict[str, Any]:
     }
 
 
+def symbol_spec(api: Any, symbol: str) -> Any:
+    info = api.symbol_info(symbol)
+    if info is None:
+        raise HTTPException(404, "Symbol unavailable.")
+    if not api.symbol_select(symbol, True):
+        raise HTTPException(409, "Symbol could not be selected.")
+    return info
+
+
+def assert_volume(spec: Any, volume: float) -> None:
+    minimum = float(spec.volume_min)
+    maximum = float(spec.volume_max)
+    step = float(spec.volume_step)
+    if step <= 0 or volume < minimum or volume > maximum:
+        raise HTTPException(400, "Volume is outside broker limits.")
+    units = round((volume - minimum) / step)
+    if abs(volume - (minimum + units * step)) > max(step * 1e-6, 1e-10):
+        raise HTTPException(400, "Volume does not match broker step.")
+
+
+def filling_mode(api: Any, spec: Any) -> int:
+    modes = int(getattr(spec, "filling_mode", 0))
+    if modes & 1:
+        return api.ORDER_FILLING_FOK
+    if modes & 2:
+        return api.ORDER_FILLING_IOC
+    return api.ORDER_FILLING_RETURN
+
+
+def trading_allowed(api: Any) -> None:
+    info = api.account_info()
+    terminal = api.terminal_info()
+    if info is None or terminal is None or not info.trade_allowed or not terminal.trade_allowed:
+        raise HTTPException(503, "Live trading is disabled by the MT5 account or terminal.")
+
+
+def result_row(result: Any, fallback_price: float | None = None) -> dict[str, Any]:
+    return {
+        "retcode": int(result.retcode),
+        "comment": str(result.comment),
+        "ticket": int(getattr(result, "order", 0) or getattr(result, "deal", 0) or 0),
+        "order": int(getattr(result, "order", 0) or 0),
+        "deal": int(getattr(result, "deal", 0) or 0),
+        "price": float(getattr(result, "price", 0) or fallback_price or 0),
+        "request_id": int(getattr(result, "request_id", 0) or 0),
+        "volume": float(getattr(result, "volume", 0) or 0),
+    }
+
+
 @APP.exception_handler(HTTPException)
 async def http_error(_, exc: HTTPException) -> JSONResponse:
     return JSONResponse({"ok": False, "error": exc.detail}, status_code=exc.status_code)
@@ -79,7 +133,6 @@ def health(authorization: str | None = Header(default=None)) -> dict[str, Any]:
     auth(authorization)
     api = require_mt5()
     try:
-        ensure_login(api)
         info = api.account_info()
         terminal = api.terminal_info()
         return {
@@ -97,7 +150,6 @@ def account(authorization: str | None = Header(default=None)) -> dict[str, Any]:
     auth(authorization)
     api = require_mt5()
     try:
-        ensure_login(api)
         return snapshot(api)
     finally:
         api.shutdown()
@@ -108,7 +160,6 @@ def positions(authorization: str | None = Header(default=None)) -> list[dict[str
     auth(authorization)
     api = require_mt5()
     try:
-        ensure_login(api)
         rows = api.positions_get() or ()
         return [position_row(x) for x in rows]
     finally:
@@ -120,7 +171,6 @@ def orders(authorization: str | None = Header(default=None)) -> list[dict[str, A
     auth(authorization)
     api = require_mt5()
     try:
-        ensure_login(api)
         rows = api.orders_get() or ()
         return [order_row(x) for x in rows]
     finally:
@@ -132,7 +182,6 @@ def symbols(authorization: str | None = Header(default=None)) -> list[dict[str, 
     auth(authorization)
     api = require_mt5()
     try:
-        ensure_login(api)
         rows = api.symbols_get() or ()
         return [{"name": str(x.name), "visible": bool(x.visible), "trade_mode": int(x.trade_mode)} for x in rows]
     finally:
@@ -144,11 +193,9 @@ def price(symbol: str, authorization: str | None = Header(default=None)) -> dict
     auth(authorization)
     api = require_mt5()
     try:
-        ensure_login(api)
-        if not api.symbol_select(symbol, True):
-            raise HTTPException(404, "Symbol unavailable.")
+        symbol_spec(api, symbol)
         tick = api.symbol_info_tick(symbol)
-        if tick is None:
+        if tick is None or float(tick.bid) <= 0 or float(tick.ask) <= 0 or float(tick.ask) <= float(tick.bid):
             raise HTTPException(503, "Quote unavailable.")
         return {"symbol": symbol, "bid": float(tick.bid), "ask": float(tick.ask), "time": int(tick.time), "timestamp": int(time.time())}
     finally:
@@ -160,10 +207,7 @@ def symbol(symbol: str, authorization: str | None = Header(default=None)) -> dic
     auth(authorization)
     api = require_mt5()
     try:
-        ensure_login(api)
-        info = api.symbol_info(symbol)
-        if info is None:
-            raise HTTPException(404, "Symbol unavailable.")
+        info = symbol_spec(api, symbol)
         return {
             "name": str(info.name),
             "volume_min": float(info.volume_min),
@@ -174,6 +218,7 @@ def symbol(symbol: str, authorization: str | None = Header(default=None)) -> dic
             "point": float(info.point),
             "digits": int(info.digits),
             "trade_mode": int(info.trade_mode),
+            "filling_mode": int(getattr(info, "filling_mode", 0)),
         }
     finally:
         api.shutdown()
@@ -187,6 +232,7 @@ def order(
     sl: float = Query(0.0, ge=0),
     tp: float = Query(0.0, ge=0),
     comment: str = Query("SV", max_length=31),
+    max_deviation_points: int = Query(20, ge=0, le=1000),
     authorization: str | None = Header(default=None),
 ) -> dict[str, Any]:
     auth(authorization)
@@ -194,37 +240,27 @@ def order(
         raise HTTPException(403, "Bridge is configured read-only.")
     api = require_mt5()
     try:
-        ensure_login(api)
-        info = api.account_info()
-        terminal = api.terminal_info()
-        if info is None or terminal is None or not info.trade_allowed or not terminal.trade_allowed:
-            raise HTTPException(503, "Live trading is disabled by the MT5 account or terminal.")
-        spec = api.symbol_info(symbol)
+        trading_allowed(api)
+        spec = symbol_spec(api, symbol)
         tick = api.symbol_info_tick(symbol)
-        if spec is None or tick is None:
-            raise HTTPException(404, "Symbol or quote unavailable.")
+        if tick is None:
+            raise HTTPException(503, "Quote unavailable.")
         if spec.trade_mode == api.SYMBOL_TRADE_MODE_DISABLED:
             raise HTTPException(409, "Symbol trading is disabled.")
-        step = float(spec.volume_step)
-        minimum = float(spec.volume_min)
-        maximum = float(spec.volume_max)
-        if lot < minimum or lot > maximum or step <= 0:
-            raise HTTPException(400, "Volume is outside broker limits.")
-        units = round((lot - minimum) / step)
-        if abs(lot - (minimum + units * step)) > max(step * 1e-6, 1e-10):
-            raise HTTPException(400, "Volume does not match broker step.")
+        assert_volume(spec, lot)
+        price_value = float(tick.ask if order_type == "buy" else tick.bid)
         order_kind = api.ORDER_TYPE_BUY if order_type == "buy" else api.ORDER_TYPE_SELL
         request: dict[str, Any] = {
             "action": api.TRADE_ACTION_DEAL,
             "symbol": symbol,
             "volume": lot,
             "type": order_kind,
-            "price": float(tick.ask if order_type == "buy" else tick.bid),
-            "deviation": 20,
+            "price": price_value,
+            "deviation": max_deviation_points,
             "magic": 260911,
             "comment": comment,
             "type_time": api.ORDER_TIME_GTC,
-            "type_filling": api.ORDER_FILLING_IOC,
+            "type_filling": filling_mode(api, spec),
         }
         if sl > 0:
             request["sl"] = sl
@@ -238,13 +274,113 @@ def order(
         result = api.order_send(request)
         if result is None:
             raise HTTPException(502, "Broker order submission returned no acknowledgement.")
+        return result_row(result, price_value)
+    finally:
+        api.shutdown()
+
+
+@APP.patch("/position/{ticket}")
+def modify_position(
+    ticket: int,
+    sl: float | None = Query(default=None, ge=0),
+    tp: float | None = Query(default=None, ge=0),
+    authorization: str | None = Header(default=None),
+) -> dict[str, Any]:
+    auth(authorization)
+    if ALLOW_READ_ONLY:
+        raise HTTPException(403, "Bridge is configured read-only.")
+    if sl is None and tp is None:
+        raise HTTPException(400, "At least one of sl or tp is required.")
+    api = require_mt5()
+    try:
+        trading_allowed(api)
+        rows = api.positions_get(ticket=ticket) or ()
+        if not rows:
+            raise HTTPException(404, "Position unavailable.")
+        position = rows[0]
+        request = {"action": api.TRADE_ACTION_SLTP, "symbol": position.symbol, "position": ticket, "sl": float(sl if sl is not None else position.sl), "tp": float(tp if tp is not None else position.tp)}
+        result = api.order_send(request)
+        if result is None:
+            raise HTTPException(502, "Position modification returned no acknowledgement.")
+        return result_row(result)
+    finally:
+        api.shutdown()
+
+
+@APP.delete("/order/{ticket}")
+def cancel_order(ticket: int, authorization: str | None = Header(default=None)) -> dict[str, Any]:
+    auth(authorization)
+    if ALLOW_READ_ONLY:
+        raise HTTPException(403, "Bridge is configured read-only.")
+    api = require_mt5()
+    try:
+        trading_allowed(api)
+        rows = api.orders_get(ticket=ticket) or ()
+        if not rows:
+            raise HTTPException(404, "Pending order unavailable.")
+        pending = rows[0]
+        request = {"action": api.TRADE_ACTION_REMOVE, "order": ticket, "symbol": pending.symbol}
+        result = api.order_send(request)
+        if result is None:
+            raise HTTPException(502, "Order cancellation returned no acknowledgement.")
+        return result_row(result)
+    finally:
+        api.shutdown()
+
+
+@APP.post("/position/{ticket}/close")
+def close_position(
+    ticket: int,
+    authorization: str | None = Header(default=None),
+) -> dict[str, Any]:
+    auth(authorization)
+    if ALLOW_READ_ONLY:
+        raise HTTPException(403, "Bridge is configured read-only.")
+    api = require_mt5()
+    try:
+        trading_allowed(api)
+        rows = api.positions_get(ticket=ticket) or ()
+        if not rows:
+            raise HTTPException(404, "Position unavailable.")
+        position = rows[0]
+        tick = api.symbol_info_tick(position.symbol)
+        spec = symbol_spec(api, position.symbol)
+        if tick is None:
+            raise HTTPException(503, "Quote unavailable.")
+        is_buy = int(position.type) == int(api.POSITION_TYPE_BUY)
+        request = {
+            "action": api.TRADE_ACTION_DEAL,
+            "symbol": position.symbol,
+            "volume": float(position.volume),
+            "type": api.ORDER_TYPE_SELL if is_buy else api.ORDER_TYPE_BUY,
+            "position": ticket,
+            "price": float(tick.bid if is_buy else tick.ask),
+            "deviation": 20,
+            "magic": 260911,
+            "comment": "SV:CLOSE"[:31],
+            "type_time": api.ORDER_TIME_GTC,
+            "type_filling": filling_mode(api, spec),
+        }
+        result = api.order_send(request)
+        if result is None:
+            raise HTTPException(502, "Position close returned no acknowledgement.")
+        return result_row(result, request["price"])
+    finally:
+        api.shutdown()
+
+
+@APP.get("/execution/{ticket}")
+def execution_status(ticket: int, authorization: str | None = Header(default=None)) -> dict[str, Any]:
+    auth(authorization)
+    api = require_mt5()
+    try:
+        position_rows = api.positions_get(ticket=ticket) or ()
+        order_rows = api.orders_get(ticket=ticket) or ()
         return {
-            "retcode": int(result.retcode),
-            "comment": str(result.comment),
-            "ticket": int(result.order or result.deal or 0),
-            "order": int(result.order or 0),
-            "deal": int(result.deal or 0),
-            "price": float(result.price or request["price"]),
+            "ticket": ticket,
+            "position": position_row(position_rows[0]) if position_rows else None,
+            "order": order_row(order_rows[0]) if order_rows else None,
+            "timestamp": int(time.time()),
         }
     finally:
         api.shutdown()
