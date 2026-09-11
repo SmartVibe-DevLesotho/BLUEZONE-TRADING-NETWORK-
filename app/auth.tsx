@@ -23,6 +23,7 @@ export default function Auth(){
  useEffect(()=>{
   const handleOAuthUrl=async(url:string)=>{
    if(!url.includes('access_token=')&&!url.includes('code='))return;
+   if(!supabase){setGoogleBusy(false);setError('Supabase is not configured.');return;}
    try{
     const parsed=new URL(url);
     const hashParams=new URLSearchParams(parsed.hash.replace(/^#/,''));
@@ -48,7 +49,9 @@ export default function Auth(){
  },[router]);
 
  async function signInWithGoogle(){
-  setError('');setNotice('');setGoogleBusy(true);
+  setError('');setNotice('');
+  if(!supabase)return setError('Supabase is not configured.');
+  setGoogleBusy(true);
   try{
    const redirectTo=Platform.OS==='web'?window.location.origin:`smartvibe://google-auth`;
    const {data,error}=await supabase.auth.signInWithOAuth({
