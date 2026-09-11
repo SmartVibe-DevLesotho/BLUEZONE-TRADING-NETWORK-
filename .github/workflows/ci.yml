@@ -40,10 +40,8 @@ jobs:
         run: python -m py_compile mt5-bridge/app.py
       - name: Verify MT5 bridge security contract
         run: |
-          if grep -nE 'docs_url=|redoc_url=|MT5_BRIDGE_TOKEN.*getenv' mt5-bridge/app.py | grep -q 'docs_url='; then
-            echo "Interactive bridge documentation must remain disabled."
-            exit 1
-          fi
+          grep -q 'docs_url=None' mt5-bridge/app.py
+          grep -q 'redoc_url=None' mt5-bridge/app.py
           grep -q 'if not TOKEN:' mt5-bridge/app.py
           grep -q 'if ALLOW_READ_ONLY:' mt5-bridge/app.py
           grep -q 'api.order_check' mt5-bridge/app.py
