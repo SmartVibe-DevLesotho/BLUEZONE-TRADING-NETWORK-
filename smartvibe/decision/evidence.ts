@@ -1,4 +1,5 @@
 import type { Evidence, SmartVibeSetup } from '../adapters/types';
+import { analyzeSupportingMechanism, type SupportingMechanismInput, type StructuralEvidence } from '../intelligence/supporting-mechanism';
 
 export type EvidenceDomain =
   | 'structure' | 'liquidity' | 'displacement' | 'order_block' | 'fvg'
@@ -28,6 +29,41 @@ export function buildEvidenceMatrix(setup: SmartVibeSetup, items: EvidenceItem[]
     methodologyDirection: setup.direction,
     items: [...items],
     complete: REQUIRED_DOMAINS.every((domain) => domains.has(domain)),
+  };
+}
+
+/**
+ * Converts the universal structural analyzer into normalized SmartVibe evidence.
+ * It remains subordinate to the primary methodology and never emits an order command.
+ */
+export function buildStructuralSupportingEvidence(input: SupportingMechanismInput): EvidenceItem {
+  const structure: StructuralEvidence = analyzeSupportingMechanism(input);
+  const blocking = structure.dataQuality === 'INSUFFICIENT' || structure.dataQuality === 'LOW' || structure.contradiction;
+  const role = structure.contradiction ? 'CONTRADICTORY' : structure.dataQuality === 'INSUFFICIENT' ? 'INSUFFICIENT' : 'CONFIRMING';
+  return {
+    domain: 'structure',
+    source: 'smartvibe-supporting-mechanism',
+    status: blocking ? 'FAIL' : structure.requiresConfirmation ? 'NEUTRAL' : 'PASS',
+    role,
+    summary: `Regime=${structure.macroRegime}; HTF=${structure.htfStructure}; range=${structure.rangeLocation}; liquidity=${structure.liquidityEvent}; transition=${structure.trendTransition}.`,
+    confidence: structure.supportingConfidence,
+    metrics: {
+      rangePositionPercent: structure.rangePositionPercent,
+      rangeRegimeProbability: structure.rangeRegimeProbability,
+      trendProbability: structure.trendProbability,
+      compressionProbability: structure.compressionProbability,
+      expansionProbability: structure.expansionProbability,
+      correctionProbability: structure.correctionProbability,
+      stageProbability: structure.stageProbability,
+      structuralInvalidationPrice: structure.structuralInvalidationPrice,
+      invalidationStatus: structure.invalidationStatus,
+      volatilityState: structure.volatilityState,
+      dataQuality: structure.dataQuality,
+      contradiction: structure.contradiction,
+      requiresConfirmation: structure.requiresConfirmation,
+    },
+    warnings: structure.requiresConfirmation ? ['Supporting evidence requires confirmation before it can be considered execution-ready.'] : undefined,
+    observedAt: new Date().toISOString(),
   };
 }
 
