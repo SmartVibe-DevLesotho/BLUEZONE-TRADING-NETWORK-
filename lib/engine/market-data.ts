@@ -45,6 +45,26 @@ export type MarketDataIntegrity = {
 
 const finite = (value: number | undefined): boolean => value === undefined || Number.isFinite(value);
 
+const timeframeMs = (timeframe: string): number | null => {
+  const match = timeframe.trim().toUpperCase().match(/^(\d+)\s*([SMHDW])$/);
+  if (!match) return null;
+  const amount = Number(match[1]);
+  const unit = match[2];
+  const multiplier = unit === 'S' ? 1_000 : unit === 'M' ? 60_000 : unit === 'H' ? 3_600_000 : unit === 'D' ? 86_400_000 : 604_800_000;
+  return Number.isFinite(amount) && amount > 0 ? amount * multiplier : null;
+};
+
+const barFingerprint = (bar: NormalizedMarketBar): string => JSON.stringify([
+  bar.open,
+  bar.high,
+  bar.low,
+  bar.close,
+  bar.volume ?? null,
+  bar.bid ?? null,
+  bar.ask ?? null,
+  bar.spread ?? null,
+]);
+
 export function validateMarketData(
   bars: readonly NormalizedMarketBar[],
   now = Date.now(),
@@ -53,6 +73,7 @@ export function validateMarketData(
   const issues: string[] = [];
   let duplicateCandles = 0;
   let outOfOrderCandles = 0;
+  let missingCandles = 0;
   let stale = false;
   let ohlcValid = true;
   let timestampsValid = true;
@@ -60,9 +81,13 @@ export function validateMarketData(
   let spreadValid = true;
   let symbolConsistent = true;
   let timeframeValid = true;
+  let providerConflict = false;
 
   const seen = new Set<string>();
+  const sourceSnapshots = new Map<string, string>();
   const first = bars[0];
+  const expectedStep = first ? timeframeMs(first.timeframe) : null;
+
   for (let i = 0; i < bars.length; i += 1) {
     const bar = bars[i];
     const time = Date.parse(bar.timestamp);
@@ -70,10 +95,11 @@ export function validateMarketData(
       timestampsValid = false;
       issues.push(`Invalid UTC timestamp at index ${i}.`);
     }
-    if (!bar.timeframe) {
+    if (!bar.timeframe || timeframeMs(bar.timeframe) === null) {
       timeframeValid = false;
-      issues.push(`Missing timeframe at index ${i}.`);
+      issues.push(`Invalid timeframe at index ${i}.`);
     }
+    if (!bar.symbol || !bar.source) issues.push(`Missing symbol or source at index ${i}.`);
     if (bar.high < Math.max(bar.open, bar.close) || bar.low > Math.min(bar.open, bar.close) || bar.low > bar.high) {
       ohlcValid = false;
       issues.push(`Invalid OHLC at index ${i}.`);
@@ -85,10 +111,24 @@ export function validateMarketData(
     const key = `${bar.symbol}:${bar.timeframe}:${bar.timestamp}`;
     if (seen.has(key)) duplicateCandles += 1;
     seen.add(key);
-    if (i > 0 && Date.parse(bar.timestamp) <= Date.parse(bars[i - 1].timestamp)) outOfOrderCandles += 1;
-    if (bar.bid !== undefined && bar.ask !== undefined && bar.ask < bar.bid) bidAskConsistent = false;
-    if (bar.spread !== undefined && bar.spread < 0) spreadValid = false;
+
+    if (i > 0) {
+      const previousTime = Date.parse(bars[i - 1].timestamp);
+      if (Number.isFinite(time) && Number.isFinite(previousTime) && time <= previousTime) outOfOrderCandles += 1;
+      if (expectedStep && Number.isFinite(time) && Number.isFinite(previousTime) && time > previousTime + expectedStep) {
+        missingCandles += Math.max(0, Math.round((time - previousTime) / expectedStep) - 1);
+      }
+    }
+
+    if (bar.bid !== undefined && bar.ask !== undefined && (bar.ask < bar.bid || bar.bid < 0 || bar.ask < 0)) bidAskConsistent = false;
+    if (bar.spread !== undefined && (bar.spread < 0 || (bar.bid !== undefined && bar.ask !== undefined && Math.abs((bar.ask - bar.bid) - bar.spread) > Math.max(Math.abs(bar.spread) * 0.01, 1e-12)))) spreadValid = false;
     if (first && bar.symbol !== first.symbol) symbolConsistent = false;
+
+    const snapshotKey = `${bar.symbol}:${bar.timeframe}:${bar.timestamp}`;
+    const fingerprint = barFingerprint(bar);
+    const prior = sourceSnapshots.get(snapshotKey);
+    if (prior && prior !== fingerprint) providerConflict = true;
+    sourceSnapshots.set(snapshotKey, fingerprint);
   }
 
   if (bars.length > 0) {
@@ -98,10 +138,12 @@ export function validateMarketData(
 
   if (duplicateCandles) issues.push('Duplicate candles detected.');
   if (outOfOrderCandles) issues.push('Out-of-order candles detected.');
+  if (missingCandles) issues.push(`${missingCandles} missing candle interval(s) detected.`);
   if (stale) issues.push('Market data is stale.');
   if (!bidAskConsistent) issues.push('Bid/ask inconsistency detected.');
   if (!spreadValid) issues.push('Invalid spread detected.');
   if (!symbolConsistent) issues.push('Mixed symbols detected.');
+  if (providerConflict) issues.push('Conflicting provider snapshots detected.');
 
   const lookAheadDetected = bars.some((bar) => {
     const t = Date.parse(bar.timestamp);
@@ -109,11 +151,11 @@ export function validateMarketData(
   });
   if (lookAheadDetected) issues.push('Future-dated market data detected.');
 
-  const quality: DataQuality = bars.length === 0 || !timestampsValid || !ohlcValid || lookAheadDetected
+  const quality: DataQuality = bars.length === 0 || !timestampsValid || !ohlcValid || !timeframeValid || lookAheadDetected
     ? 'INSUFFICIENT'
     : issues.length === 0
       ? 'HIGH'
-      : stale || duplicateCandles > 0 || outOfOrderCandles > 0 || !bidAskConsistent
+      : stale || missingCandles > 0 || duplicateCandles > 0 || outOfOrderCandles > 0 || !bidAskConsistent || providerConflict
         ? 'LOW'
         : 'MEDIUM';
 
@@ -123,14 +165,14 @@ export function validateMarketData(
     timezoneValid: bars.every((bar) => bar.timezone === 'UTC'),
     timeframeValid,
     ohlcValid,
-    missingCandles: 0,
+    missingCandles,
     duplicateCandles,
     outOfOrderCandles,
     stale,
     bidAskConsistent,
     spreadValid,
     symbolConsistent,
-    providerConflict: false,
+    providerConflict,
     lookAheadDetected,
     issues,
   };
