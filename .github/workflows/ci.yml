@@ -46,6 +46,10 @@ jobs:
           grep -q 'if ALLOW_READ_ONLY:' mt5-bridge/app.py
           grep -q 'api.order_check' mt5-bridge/app.py
           grep -q 'api.order_send' mt5-bridge/app.py
+          grep -q '@APP.patch("/position/{ticket}")' mt5-bridge/app.py
+          grep -q '@APP.delete("/order/{ticket}")' mt5-bridge/app.py
+          grep -q '@APP.post("/position/{ticket}/close")' mt5-bridge/app.py
+          grep -q '@APP.get("/execution/{ticket}")' mt5-bridge/app.py
       - name: Verify supporting mechanism boundary
         run: |
           if grep -RInE "from ['\"].*smartvibe/(methodology|core)|import .*smartvibe/(methodology|core)" smartvibe/adapters smartvibe/mechanics smartvibe/intelligence smartvibe/decision 2>/dev/null; then
