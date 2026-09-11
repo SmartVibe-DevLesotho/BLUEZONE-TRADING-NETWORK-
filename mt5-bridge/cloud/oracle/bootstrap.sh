@@ -17,6 +17,7 @@ BASE="/opt/smartvibe/mt5-bridge"
 WINEPREFIX="/opt/smartvibe/wine"
 PYTHON_INSTALLER="/tmp/python-3.11.9-amd64.exe"
 MT5_INSTALLER="/tmp/mt5setup.exe"
+MT5_DIR="/opt/smartvibe/mt5-bridge/terminal"
 
 # The 1 GB Always Free AMD VM is tight for Wine + MT5. A small swap file keeps
 # the node from failing under short-lived memory spikes without changing the
@@ -29,7 +30,6 @@ if ! swapon --show | grep -q '^/swapfile'; then
   grep -q '^/swapfile ' /etc/fstab || echo '/swapfile none swap sw 0 0' >> /etc/fstab
 fi
 
-# Ubuntu requires the i386 architecture enabled before wine32 can be installed.
 dpkg --add-architecture i386 || true
 apt-get update
 apt-get install -y --no-install-recommends \
@@ -61,14 +61,15 @@ runuser -u "$APP_USER" -- env WINEPREFIX="$WINEPREFIX" \
   wine64 "$PYTHON_EXE" -m pip install --upgrade pip setuptools wheel
 
 # MetaQuotes supports unattended installation with /auto and a custom /path.
+# Z: maps to the Linux filesystem inside this Wine prefix.
 wget -q --show-progress -O "$MT5_INSTALLER" \
   "https://download.mql5.com/cdn/web/metaquotes.software.corp/mt5/mt5setup.exe"
-mkdir -p "$BASE/terminal"
+mkdir -p "$MT5_DIR"
 chown -R "$APP_USER:$APP_USER" "$BASE"
 runuser -u "$APP_USER" -- env WINEPREFIX="$WINEPREFIX" \
-  wine64 "$MT5_INSTALLER" /auto /path:"C:\\Program Files\\SmartVibe MT5"
+  wine64 "$MT5_INSTALLER" /auto /path:"Z:\\opt\\smartvibe\\mt5-bridge\\terminal"
 
-MT5_EXE="$WINEPREFIX/drive_c/Program Files/SmartVibe MT5/terminal64.exe"
+MT5_EXE="$BASE/terminal/terminal64.exe"
 if [[ ! -x "$MT5_EXE" ]]; then
   echo "ERROR: MetaTrader 5 terminal installation did not produce $MT5_EXE"
   exit 1
