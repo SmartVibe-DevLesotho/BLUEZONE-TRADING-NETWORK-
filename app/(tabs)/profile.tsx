@@ -202,7 +202,7 @@ export default function Profile() {
                   style={{ width: 112, height: 112, borderRadius: 56, borderWidth: 3, borderColor: C.cyan }}
                 />
               ) : (
-                <View style={{ width: 112, height: 112, borderRadius: 56, backgroundColor: C.panel, borderWidth: 2, borderColor: C.cyan, alignItems: 'center', justifyContent: 'center' }}>
+                <View style={{ width: 112, height: 112, borderRadius: 56, backgroundColor: C.card, borderWidth: 2, borderColor: C.cyan, alignItems: 'center', justifyContent: 'center' }}>
                   <Text style={{ fontSize: 40, fontWeight: '900', color: C.cyan }}>{(email?.[0] ?? 'S').toUpperCase()}</Text>
                 </View>
               )}
@@ -219,9 +219,9 @@ export default function Profile() {
                   <Pressable
                     onPress={removeAvatar}
                     disabled={avatarBusy}
-                    style={{ paddingHorizontal: 16, paddingVertical: 10, borderRadius: 10, borderWidth: 1, borderColor: C.danger, opacity: avatarBusy ? 0.6 : 1 }}
+                    style={{ paddingHorizontal: 16, paddingVertical: 10, borderRadius: 10, borderWidth: 1, borderColor: C.red, opacity: avatarBusy ? 0.6 : 1 }}
                   >
-                    <Text style={{ color: C.danger, fontWeight: '900' }}>Remove</Text>
+                    <Text style={{ color: C.red, fontWeight: '900' }}>Remove</Text>
                   </Pressable>
                 ) : null}
               </View>
