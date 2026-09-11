@@ -1,3 +1,4 @@
+import { evaluatePrimaryMethodology } from '../core/primary-methodology';
 import { evaluateSmartVibeGate } from '../decision/gate';
 import type { Evidence, SmartVibeSetup } from '../adapters/types';
 
@@ -25,6 +26,21 @@ const setup = (finalDecision: string, direction: 'BUY' | 'SELL' = 'BUY', overrid
     ...overrides,
   },
 });
+
+const primary = evaluatePrimaryMethodology({
+  symbol: 'EURUSD', session: 'LONDON', close: 1.105, ema200: 1.1, ema750: 1.09,
+  trendUp: true, trendDown: false, engulfingBuy: true, engulfingSell: false,
+  rangeBreakoutBuy: false, rangeBreakoutSell: false,
+});
+assertEqual(primary.finalDecision, 'APPROVED', 'SmartVibe Primary Methodology must approve a complete primary setup.');
+assertEqual(primary.direction, 'BUY', 'Primary methodology must own the directional decision.');
+
+const incompletePrimary = evaluatePrimaryMethodology({
+  symbol: 'EURUSD', session: 'LONDON', close: 1.105, ema200: 1.1, ema750: 1.09,
+  trendUp: true, trendDown: false, engulfingBuy: false, engulfingSell: false,
+  rangeBreakoutBuy: false, rangeBreakoutSell: false,
+});
+assertEqual(incompletePrimary.finalDecision, 'NO SETUP', 'Supporting evidence must not manufacture a primary setup.');
 
 assertEqual(evaluateSmartVibeGate(setup('REJECTED'), [evidence()]).executionAllowed, false, 'Supporting BUY bias cannot override SmartVibe REJECTED.');
 assertEqual(evaluateSmartVibeGate(setup('WAIT', 'SELL'), [evidence()]).executionAllowed, false, 'Supporting SELL bias cannot override SmartVibe WAIT.');
