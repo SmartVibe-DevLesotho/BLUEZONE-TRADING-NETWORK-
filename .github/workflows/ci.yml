@@ -35,7 +35,13 @@ jobs:
         with:
           deno-version: v2.x
       - name: Validate live Edge Functions
-        run: deno check --node-modules-dir=auto supabase/functions/live-execute/index.ts supabase/functions/consensus-signals/index.ts
+        run: deno check --node-modules-dir=auto supabase/functions/ai-chat/index.ts supabase/functions/live-execute/index.ts supabase/functions/consensus-signals/index.ts
+      - name: Validate Cloudflare Workers AI gateway
+        run: |
+          test -f cloudflare/ai-worker/src/index.ts
+          grep -q 'binding = "AI"' cloudflare/ai-worker/wrangler.toml
+          grep -q 'env.AI.run' cloudflare/ai-worker/src/index.ts
+          grep -q 'AI_GATEWAY_TOKEN' cloudflare/ai-worker/src/index.ts
       - name: Validate MT5 bridge source
         run: python -m py_compile mt5-bridge/app.py
       - name: Validate MT5 cloud bootstrap scripts
