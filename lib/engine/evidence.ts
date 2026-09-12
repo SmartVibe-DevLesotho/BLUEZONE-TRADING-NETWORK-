@@ -2,7 +2,7 @@ import type { StructureEvidence } from './market-structure';
 
 export type EvidenceStatus = 'confirmed' | 'neutral' | 'warning' | 'unknown';
 export type EvidenceRole = 'PRIMARY' | 'CONFIRMING' | 'CONTEXTUAL' | 'CONTRADICTORY' | 'INSUFFICIENT';
-export type EvidenceSource = 'smartvibe-market-structure';
+export type EvidenceSource = 'smartvibe-market-structure' | 'smartvibe-supporting-mechanics';
 
 export type SmartVibeEvidence = {
   source: EvidenceSource;
