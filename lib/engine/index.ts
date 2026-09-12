@@ -7,5 +7,6 @@ export * from './performance';
 export * from './periodic-liquidity';
 export * from './smartvibe-gate';
 export * from './smartvibe-robot-mechanics';
+export * from './smartvibe-supporting-evidence';
 export * from './smartvibe-supporting-mechanics';
 export * from './spot-accumulation';
