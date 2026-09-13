@@ -1,6 +1,6 @@
 import type { ConsensusSignal } from '@/lib/backend';
-import type { SmartVibeEvidence } from './evidence';
-import { evaluateSmartVibeGate, type SmartVibeGateResult } from './smartvibe-gate';
+import type { SmartVibeEvidence, SmartVibeGateResult } from './evidence';
+import { evaluateSmartVibeGate } from './smartvibe-gate';
 import { buildSmartVibeMechanicEvidence, type SmartVibeBar } from './smartvibe-supporting-mechanics';
 import { buildSmartVibeRobotMechanicEvidence } from './smartvibe-robot-mechanics';
 
