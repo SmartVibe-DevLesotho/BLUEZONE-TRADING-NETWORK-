@@ -1,0 +1,233 @@
+//@version=6
+indicator("SMARTVIBE PRO TRADING SYSTEM", overlay=true,
+     max_lines_count=500, max_labels_count=500)
+
+// SMARTVIBE TRADING NETWORK
+// Standalone supporting indicator.
+// Provides key levels, session structure, liquidity-sweep and multi-day technical evidence.
+// SmartVibe Primary Methodology remains the final authority for any live trading decision.
+
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// INPUTS
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+groupLevels = "SMARTVIBE KEY LEVELS"
+
+showPD      = input.bool(true, "Previous Day High/Low", group=groupLevels)
+showPW      = input.bool(true, "Previous Week High/Low", group=groupLevels)
+showMonday  = input.bool(true, "Monday Opening Range", group=groupLevels)
+
+groupSess = "SMARTVIBE SESSIONS"
+
+showAsia    = input.bool(true, "Asia", group=groupSess)
+showLondon  = input.bool(true, "London", group=groupSess)
+showNY      = input.bool(true, "New York", group=groupSess)
+
+asiaSession   = input.session("0000-0800", "Asia Session", group=groupSess)
+londonSession = input.session("0700-1100", "London Session", group=groupSess)
+nySession     = input.session("1300-1700", "New York Session", group=groupSess)
+
+groupSignal = "SMARTVIBE PRO SETUPS"
+
+showInside   = input.bool(true, "Inside Day", group=groupSignal)
+showFirstDay = input.bool(true, "First Red/Green Day", group=groupSignal)
+showSweep    = input.bool(true, "Liquidity Sweep", group=groupSignal)
+show3Day     = input.bool(true, "3 Day Setup", group=groupSignal)
+
+groupEntry = "SMARTVIBE CONFIRMATION"
+
+useVolume = input.bool(false, "Use Volume Confirmation", group=groupEntry)
+volumeLen = input.int(20, "Volume Average Length", minval=1, group=groupEntry)
+
+rr = input.float(2.0, "Target R:R", minval=0.5, step=0.5, group=groupEntry)
+
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// PREVIOUS DAY LEVELS
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+pdHigh = request.security(syminfo.tickerid, "D", high[1], lookahead=barmerge.lookahead_on)
+pdLow = request.security(syminfo.tickerid, "D", low[1], lookahead=barmerge.lookahead_on)
+pdOpen = request.security(syminfo.tickerid, "D", open[1], lookahead=barmerge.lookahead_on)
+pdClose = request.security(syminfo.tickerid, "D", close[1], lookahead=barmerge.lookahead_on)
+
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// PREVIOUS WEEK
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+pwHigh = request.security(syminfo.tickerid, "W", high[1], lookahead=barmerge.lookahead_on)
+pwLow = request.security(syminfo.tickerid, "W", low[1], lookahead=barmerge.lookahead_on)
+
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// SMARTVIBE DAILY / WEEKLY LEVELS
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+plot(showPD ? pdHigh : na, "SmartVibe Previous Day High", color=color.red, linewidth=1, style=plot.style_linebr)
+plot(showPD ? pdLow : na, "SmartVibe Previous Day Low", color=color.green, linewidth=1, style=plot.style_linebr)
+plot(showPW ? pwHigh : na, "SmartVibe Previous Week High", color=color.orange, linewidth=2, style=plot.style_linebr)
+plot(showPW ? pwLow : na, "SmartVibe Previous Week Low", color=color.aqua, linewidth=2, style=plot.style_linebr)
+
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// SESSION FUNCTION
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+inSession(sess) =>
+    not na(time(timeframe.period, sess))
+
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ASIA
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+asia = inSession(asiaSession)
+asiaStart = asia and not asia[1]
+
+var float asiaHigh = na
+var float asiaLow = na
+
+if asiaStart
+    asiaHigh := high
+    asiaLow := low
+else if asia
+    asiaHigh := math.max(asiaHigh, high)
+    asiaLow := math.min(asiaLow, low)
+
+plot(showAsia and asia ? asiaHigh : na, "SmartVibe Asia High", color=color.new(color.blue, 20), style=plot.style_linebr)
+plot(showAsia and asia ? asiaLow : na, "SmartVibe Asia Low", color=color.new(color.blue, 20), style=plot.style_linebr)
+
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// LONDON
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+london = inSession(londonSession)
+londonStart = london and not london[1]
+
+var float londonHigh = na
+var float londonLow = na
+
+if londonStart
+    londonHigh := high
+    londonLow := low
+else if london
+    londonHigh := math.max(londonHigh, high)
+    londonLow := math.min(londonLow, low)
+
+plot(showLondon and london ? londonHigh : na, "SmartVibe London High", color=color.new(color.purple, 20), style=plot.style_linebr)
+plot(showLondon and london ? londonLow : na, "SmartVibe London Low", color=color.new(color.purple, 20), style=plot.style_linebr)
+
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// NEW YORK
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ny = inSession(nySession)
+nyStart = ny and not ny[1]
+
+var float nyHigh = na
+var float nyLow = na
+
+if nyStart
+    nyHigh := high
+    nyLow := low
+else if ny
+    nyHigh := math.max(nyHigh, high)
+    nyLow := math.min(nyLow, low)
+
+plot(showNY and ny ? nyHigh : na, "SmartVibe New York High", color=color.new(color.yellow, 20), style=plot.style_linebr)
+plot(showNY and ny ? nyLow : na, "SmartVibe New York Low", color=color.new(color.yellow, 20), style=plot.style_linebr)
+
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// INSIDE DAY
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+todayHigh = request.security(syminfo.tickerid, "D", high, lookahead=barmerge.lookahead_on)
+todayLow = request.security(syminfo.tickerid, "D", low, lookahead=barmerge.lookahead_on)
+
+insideDay = todayHigh < pdHigh and todayLow > pdLow
+
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// FIRST RED / FIRST GREEN DAY
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+currentDailyOpen = request.security(syminfo.tickerid, "D", open, lookahead=barmerge.lookahead_on)
+currentDailyClose = request.security(syminfo.tickerid, "D", close, lookahead=barmerge.lookahead_on)
+
+firstRed = currentDailyClose < currentDailyOpen and pdClose > pdOpen
+firstGreen = currentDailyClose > currentDailyOpen and pdClose < pdOpen
+
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// LIQUIDITY SWEEPS
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+bearSweep = high > pdHigh and close < pdHigh
+bullSweep = low < pdLow and close > pdLow
+
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// VOLUME FILTER
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+volAvg = ta.sma(volume, volumeLen)
+volumeOK = not useVolume or volume > volAvg
+
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// SMARTVIBE PRO SIGNALS
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+bullSignal = showSweep and bullSweep and volumeOK
+bearSignal = showSweep and bearSweep and volumeOK
+
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 3 DAY STRUCTURE
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+dClose1 = request.security(syminfo.tickerid, "D", close[1], lookahead=barmerge.lookahead_on)
+dClose2 = request.security(syminfo.tickerid, "D", close[2], lookahead=barmerge.lookahead_on)
+dOpen1 = request.security(syminfo.tickerid, "D", open[1], lookahead=barmerge.lookahead_on)
+dOpen2 = request.security(syminfo.tickerid, "D", open[2], lookahead=barmerge.lookahead_on)
+
+threeDayBull = dClose2 < dOpen2 and dClose1 < dOpen1 and close > open
+threeDayBear = dClose2 > dOpen2 and dClose1 > dOpen1 and close < open
+
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// MONDAY OPENING RANGE
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+isMonday = dayofweek == dayofweek.monday
+newDay = ta.change(time("D")) != 0
+
+var float mondayHigh = na
+var float mondayLow = na
+
+if newDay and dayofweek == dayofweek.monday
+    mondayHigh := high
+    mondayLow := low
+else if isMonday
+    mondayHigh := math.max(nz(mondayHigh, high), high)
+    mondayLow := math.min(nz(mondayLow, low), low)
+
+plot(showMonday ? mondayHigh : na, "SmartVibe Monday High", color=color.fuchsia, linewidth=2, style=plot.style_linebr)
+plot(showMonday ? mondayLow : na, "SmartVibe Monday Low", color=color.fuchsia, linewidth=2, style=plot.style_linebr)
+
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// SMARTVIBE SIGNAL PLOTS
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+plotshape(showInside and insideDay and newDay, title="SmartVibe Inside Day", style=shape.diamond, location=location.abovebar, color=color.yellow, size=size.small, text="SV ID")
+plotshape(showFirstDay and firstRed and newDay, title="SmartVibe First Red Day", style=shape.labeldown, location=location.abovebar, color=color.red, text="SV FRD", textcolor=color.white)
+plotshape(showFirstDay and firstGreen and newDay, title="SmartVibe First Green Day", style=shape.labelup, location=location.belowbar, color=color.green, text="SV FGD", textcolor=color.white)
+plotshape(bullSignal, title="SmartVibe Bullish Sweep", style=shape.triangleup, location=location.belowbar, color=color.lime, size=size.small, text="SV BUY")
+plotshape(bearSignal, title="SmartVibe Bearish Sweep", style=shape.triangledown, location=location.abovebar, color=color.red, size=size.small, text="SV SELL")
+plotshape(show3Day and threeDayBull, title="SmartVibe 3 Day Bull", style=shape.labelup, location=location.belowbar, color=color.lime, text="SV 3D BUY", textcolor=color.black)
+plotshape(show3Day and threeDayBear, title="SmartVibe 3 Day Bear", style=shape.labeldown, location=location.abovebar, color=color.red, text="SV 3D SELL", textcolor=color.white)
+
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// SMARTVIBE ALERTS
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+alertcondition(bullSignal, title="SMARTVIBE PRO BUY", message="SMARTVIBE PRO TRADING SYSTEM: Bullish liquidity sweep of Previous Day Low")
+alertcondition(bearSignal, title="SMARTVIBE PRO SELL", message="SMARTVIBE PRO TRADING SYSTEM: Bearish liquidity sweep of Previous Day High")
+alertcondition(insideDay and newDay, title="SMARTVIBE INSIDE DAY", message="SMARTVIBE PRO TRADING SYSTEM: Inside Day detected")
+alertcondition(firstRed and newDay, title="SMARTVIBE FIRST RED DAY", message="SMARTVIBE PRO TRADING SYSTEM: First Red Day detected")
+alertcondition(firstGreen and newDay, title="SMARTVIBE FIRST GREEN DAY", message="SMARTVIBE PRO TRADING SYSTEM: First Green Day detected")
+
+// SMARTVIBE AUTHORITY NOTE:
+// This indicator is an independent technical evidence source.
+// It must not bypass SmartVibe Primary Methodology, signal authority,
+// risk controls, execution gates, or live-trading authorization.
