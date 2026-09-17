@@ -1,0 +1,99 @@
+#property strict
+#property version "1.0.0"
+#property description "SmartVibe phone-first MT5 relay. No broker credentials leave the MT5 terminal."
+
+#include <Trade/Trade.mqh>
+
+input string GatewayUrl = "https://YOUR_PROJECT_REF.supabase.co/functions/v1/mt5-gateway";
+input string DeviceId = "PASTE_DEVICE_ID";
+input string DeviceToken = "PASTE_DEVICE_TOKEN";
+input int PollSeconds = 1;
+input ulong MagicNumber = 7142026;
+input int DeviationPoints = 30;
+
+CTrade Trade;
+datetime lastHeartbeat=0;
+
+string Header(){ return "Authorization: Bearer "+DeviceToken+"\r\nX-MT5-Device: "+DeviceId+"\r\n"; }
+string FormEncode(string s){ StringReplace(s,"%","%25"); StringReplace(s," ","%20"); StringReplace(s,"|","%7C"); StringReplace(s,"#","%23"); StringReplace(s,"&","%26"); StringReplace(s,"=","%3D"); return s; }
+
+bool Request(string method,string url,string body,string &response,int timeout=5000){
+  char data[],result[]; string result_headers;
+  if(body!="") StringToCharArray(body,data,0,StringLen(body),CP_UTF8);
+  else ArrayResize(data,0);
+  ResetLastError();
+  int code=WebRequest(method,url,Header()+"Content-Type: application/x-www-form-urlencoded\r\n",timeout,data,ArraySize(data),result,result_headers);
+  if(code<0){ Print("SmartVibe WebRequest error ",GetLastError()," ",url); return false; }
+  response=CharArrayToString(result,0,-1,CP_UTF8);
+  return code>=200 && code<300;
+}
+
+void Heartbeat(){
+  string body="connected="+(TerminalInfoInteger(TERMINAL_CONNECTED)?"1":"0")+
+    "&trade_allowed="+((TerminalInfoInteger(TERMINAL_TRADE_ALLOWED)&&MQLInfoInteger(MQL_TRADE_ALLOWED))?"1":"0")+
+    "&account_login="+IntegerToString((long)AccountInfoInteger(ACCOUNT_LOGIN))+
+    "&broker_server="+FormEncode(AccountInfoString(ACCOUNT_SERVER))+
+    "&currency="+FormEncode(AccountInfoString(ACCOUNT_CURRENCY))+
+    "&balance="+DoubleToString(AccountInfoDouble(ACCOUNT_BALANCE),2)+
+    "&equity="+DoubleToString(AccountInfoDouble(ACCOUNT_EQUITY),2)+
+    "&leverage="+DoubleToString((double)AccountInfoInteger(ACCOUNT_LEVERAGE),0)+
+    "&terminal_version="+IntegerToString((long)TerminalInfoInteger(TERMINAL_BUILD));
+  string r; Request("POST",GatewayUrl+"/device/heartbeat",body,r,4000); lastHeartbeat=TimeCurrent();
+}
+
+bool Result(string id,bool ok,int retcode,ulong ticket,double price,double bid,double ask,string message,string payload=""){
+  string body="id="+FormEncode(id)+"&ok="+(ok?"1":"0")+"&retcode="+IntegerToString(retcode)+"&ticket="+IntegerToString((long)ticket)+"&price="+DoubleToString(price,_Digits)+"&bid="+DoubleToString(bid,_Digits)+"&ask="+DoubleToString(ask,_Digits)+"&message="+FormEncode(message)+"&payload="+FormEncode(payload);
+  string r; return Request("POST",GatewayUrl+"/device/result",body,r,5000);
+}
+
+string PositionsJson(){
+  string json="{\"positions\":["; bool first=true;
+  for(int i=0;i<PositionsTotal();i++){
+    ulong ticket=PositionGetTicket(i); if(ticket==0) continue;
+    if(!first) json+=","; first=false;
+    string symbol=PositionGetString(POSITION_SYMBOL); double volume=PositionGetDouble(POSITION_VOLUME),price=PositionGetDouble(POSITION_PRICE_OPEN),sl=PositionGetDouble(POSITION_SL),tp=PositionGetDouble(POSITION_TP),profit=PositionGetDouble(POSITION_PROFIT);
+    json+="{\"ticket\":"+IntegerToString((long)ticket)+",\"symbol\":\""+symbol+"\",\"volume\":"+DoubleToString(volume,2)+",\"price_open\":"+DoubleToString(price,8)+",\"sl\":"+DoubleToString(sl,8)+",\"tp\":"+DoubleToString(tp,8)+",\"profit\":"+DoubleToString(profit,2)+"}";
+  }
+  return json+"]}";
+}
+
+void Ping(string id,string action,string symbol){
+  if(action=="positions"){ Result(id,true,0,0,0,0,0,"OK",PositionsJson()); return; }
+  if(action=="price"){
+    if(!SymbolSelect(symbol,true)){ Result(id,false,0,0,0,0,0,"SYMBOL_NOT_FOUND"); return; }
+    MqlTick t; if(!SymbolInfoTick(symbol,t)){ Result(id,false,0,0,0,0,0,"TICK_UNAVAILABLE"); return; }
+    string payload="{\"bid\":"+DoubleToString(t.bid,8)+",\"ask\":"+DoubleToString(t.ask,8)+",\"time\":"+IntegerToString((long)t.time)+"}";
+    Result(id,true,0,0,t.ask,t.bid,t.ask,"OK",payload); return;
+  }
+  if(action=="symbol"){
+    if(!SymbolSelect(symbol,true)){ Result(id,false,0,0,0,0,0,"SYMBOL_NOT_FOUND"); return; }
+    string payload="{\"volume_min\":"+DoubleToString(SymbolInfoDouble(symbol,SYMBOL_VOLUME_MIN),8)+",\"volume_max\":"+DoubleToString(SymbolInfoDouble(symbol,SYMBOL_VOLUME_MAX),8)+",\"volume_step\":"+DoubleToString(SymbolInfoDouble(symbol,SYMBOL_VOLUME_STEP),8)+",\"trade_tick_size\":"+DoubleToString(SymbolInfoDouble(symbol,SYMBOL_TRADE_TICK_SIZE),8)+",\"trade_tick_value\":"+DoubleToString(SymbolInfoDouble(symbol,SYMBOL_TRADE_TICK_VALUE),8)+"}";
+    Result(id,true,0,0,0,0,0,"OK",payload); return;
+  }
+  Result(id,false,0,0,0,0,0,"UNKNOWN_PING");
+}
+
+void ExecuteCommand(string line){
+  string p[]; int n=StringSplit(line,'|',p); if(n<2) return;
+  string type=p[0],id=p[1];
+  if(type=="PING"){ if(n>=4) Ping(id,p[2],p[3]); return; }
+  if(type=="ORDER" && n>=8){
+    string symbol=p[2],side=StringToUpper(p[3]); double lot=StringToDouble(p[4]),sl=StringToDouble(p[5]),tp=StringToDouble(p[6]),price=0; string comment=p[7];
+    SymbolSelect(symbol,true); Trade.SetExpertMagicNumber(MagicNumber); Trade.SetDeviationInPoints(DeviationPoints); Trade.SetTypeFillingBySymbol(symbol);
+    bool ok=(side=="BUY")?Trade.Buy(lot,symbol,price,sl,tp,comment):Trade.Sell(lot,symbol,price,sl,tp,comment);
+    Result(id,ok,(int)Trade.ResultRetcode(),Trade.ResultOrder(),Trade.ResultPrice(),Trade.ResultBid(),Trade.ResultAsk(),Trade.ResultRetcodeDescription()); return;
+  }
+  if(type=="CLOSE" && n>=3){ ulong ticket=(ulong)StringToInteger(p[2]); Trade.SetExpertMagicNumber(MagicNumber); bool ok=Trade.PositionClose(ticket); Result(id,ok,(int)Trade.ResultRetcode(),ticket,Trade.ResultPrice(),Trade.ResultBid(),Trade.ResultAsk(),Trade.ResultRetcodeDescription()); return; }
+  if(type=="MODIFY" && n>=5){ ulong ticket=(ulong)StringToInteger(p[2]); double sl=StringToDouble(p[3]),tp=StringToDouble(p[4]); Trade.SetExpertMagicNumber(MagicNumber); bool ok=Trade.PositionModify(ticket,sl,tp); Result(id,ok,(int)Trade.ResultRetcode(),ticket,Trade.ResultPrice(),Trade.ResultBid(),Trade.ResultAsk(),Trade.ResultRetcodeDescription()); return; }
+}
+
+void Poll(){
+  string r; if(!Request("GET",GatewayUrl+"/device/next", "",r,4000)) return; if(r=="NONE"||StringLen(r)<2) return; ExecuteCommand(r);
+}
+
+int OnInit(){
+  if(StringLen(DeviceId)<10 || StringLen(DeviceToken)<20){ Print("Configure DeviceId and DeviceToken first."); return INIT_PARAMETERS_INCORRECT; }
+  EventSetTimer(MathMax(1,PollSeconds)); Trade.SetExpertMagicNumber(MagicNumber); Trade.SetDeviationInPoints(DeviationPoints); Heartbeat(); return INIT_SUCCEEDED;
+}
+void OnDeinit(const int reason){ EventKillTimer(); }
+void OnTimer(){ if(TimeCurrent()-lastHeartbeat>=5) Heartbeat(); Poll(); }
