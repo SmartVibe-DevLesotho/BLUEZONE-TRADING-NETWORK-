@@ -1,0 +1,245 @@
+//@version=6
+// SMARTVIBE INITIAL BALANCE AUCTION INTELLIGENCE
+// Adapted from the user-supplied Initial Balance Auction Intelligence source.
+// Original attribution: © dgtrd. Preserve applicable source licensing/attribution.
+// SmartVibe role: supporting market-structure evidence only; SmartVibe Methodology remains authoritative.
+
+indicator('SMARTVIBE INITIAL BALANCE AUCTION INTELLIGENCE', 'SV IB AUC', overlay = true, max_lines_count = 500, max_labels_count = 500, max_boxes_count = 500)
+
+enum utcOffsets
+    EXCHANGE = 'Exchange'
+    UTCm5_New_York = 'America/New_York'
+    UTC0_London = 'Europe/London'
+    UTCp9_Tokyo = 'Asia/Tokyo'
+    UTCp10_Sydney = 'Australia/Sydney'
+    UTCp4_Berlin = 'Europe/Berlin'
+    UTCp2_Johannesburg = 'Africa/Johannesburg'
+    UTCp2_Cairo = 'Africa/Cairo'
+    UTCp3_Addis_Ababa = 'Africa/Addis_Ababa'
+    UTCp3_Riyadh = 'Asia/Riyadh'
+    UTCp4_Dubai = 'Asia/Dubai'
+    UTCp5_Karachi = 'Asia/Karachi'
+    UTCp5p30_Kolkata = 'Asia/Kolkata'
+    UTCp8_Singapore = 'Asia/Singapore'
+    UTCp8_Shanghai = 'Asia/Shanghai'
+
+ibGroup = 'Initial Balance'
+aiGroup = 'Auction Intelligence'
+
+display = display.all - display.status_line
+ibRange = input.session('0930-1030', 'Initial Balance Session', group = ibGroup, display = display)
+sessionTimezoneInput = input.enum(utcOffsets.UTCm5_New_York, 'Session Timezone', group = ibGroup, display = display)
+sessionTimezone = sessionTimezoneInput == utcOffsets.EXCHANGE ? syminfo.timezone : str.tostring(sessionTimezoneInput)
+ibColor = input.color(#2962ff, 'Initial Balance Lines Color', group = ibGroup)
+showMidline = input.string('On', 'Initial Balance Midpoint', options = ['On', 'Off'], group = ibGroup, display = display) == 'On'
+ibmColor = input.color(color.new(color.gray, 25), 'Midpoint Color', group = ibGroup)
+showDashboard = input.bool(true, 'Auction Intelligence Dashboard', group = aiGroup)
+dashboardSize = input.string('Small', 'Dashboard Size', options = ['Tiny', 'Small', 'Normal'], group = aiGroup, display = display)
+auctionWindowStr = input.string('30', 'Auction Window (minutes)', options = ['5', '10', '15', '30'], group = aiGroup, display = display)
+showDecisionCandles = input.string('Off', 'Auction Decision Candles', options = ['On', 'Off'], group = aiGroup, display = display) == 'On'
+decisionBullColor = input.color(color.teal, 'Bull Decision Color', group = aiGroup)
+decisionBearColor = input.color(color.red, 'Bear Decision Color', group = aiGroup)
+showProjections = input.string('Off', 'Initial Balance Projections', options = ['On', 'Off'], group = ibGroup, display = display) == 'On'
+ibmPColor = input.color(color.new(color.orange, 69), 'Projection Color', group = ibGroup)
+
+timeframeOK = timeframe.isintraday and timeframe.in_seconds() <= 30 * 60
+
+f_lowerTfRange() =>
+    o = float(na), h = float(na), l = float(na), c = float(na)
+    if timeframe.in_seconds() <= 60
+        o := open, h := high, l := low, c := close
+    else
+        [aO, aH, aL, aC] = request.security_lower_tf(syminfo.tickerid, '1', [open, high, low, close])
+        if aH.size() > 0
+            o := aO.get(0), h := aH.max(), l := aL.min(), c := aC.get(aC.size() - 1)
+    [o, h, l, c]
+
+f_regime(state, failedAbove, failedBelow) =>
+    string result = switch
+        state == 'Continuation' => 'Trend Auction'
+        state == 'Rejection' => 'Failed Expansion'
+        state == 'Accepted Above' or state == 'Accepted Below' => 'Expansion'
+        state == 'Two-Sided Auction' or failedAbove and failedBelow => 'Rotational'
+        state == 'Failed Above' or state == 'Failed Below' => 'Rotational'
+        => 'Balanced'
+    result
+
+f_bias(state, side) =>
+    string result = switch state
+        'Accepted Above' => 'Bullish'
+        'Accepted Below' => 'Bearish'
+        'Failed Above' => 'Bearish Pressure'
+        'Failed Below' => 'Bullish Pressure'
+        'Two-Sided Auction' => 'Conflicted'
+        'Continuation' => side == 'above' ? 'Bullish' : 'Bearish'
+        'Rejection' => side == 'above' ? 'Bearish' : 'Bullish'
+        => 'Balanced'
+    result
+
+f_maturity(candles) =>
+    string result = switch
+        candles <= 1 => 'Early'
+        candles <= 3 => 'Developing'
+        candles <= 6 => 'Mature'
+        => 'Exhausted'
+    result
+
+var line lnHigh = na, var line lnLow = na, var line lnMid = na
+var line lnHighExt = na, var line lnLowExt = na, var line lnMidExt = na
+var label lblHigh = na, var label lblLow = na, var label lblMid = na
+var float balanceHigh = na, var float balanceLow = na
+var int balanceTime = na
+var int ibEndTime = na
+var bool wasAbove = false, var bool wasBelow = false
+var bool failedAbove = false, var bool failedBelow = false
+var int outsideBars = 0
+var string state = 'Building IB'
+var string side = 'inside'
+var float prevIBHigh = na, var float prevIBLow = na
+var line lnProjUp1 = na, var line lnProjUp2 = na, var line lnProjUp3 = na
+var line lnProjDn1 = na, var line lnProjDn2 = na, var line lnProjDn3 = na
+
+session = not na(time(timeframe.period, ibRange, sessionTimezone))
+sessionStart = session and session != session[1]
+
+if sessionStart and timeframeOK
+    prevIBHigh := balanceHigh
+    prevIBLow := balanceLow
+    balanceTime := time
+    ibEndTime := time + 60 * 60 * 1000
+    [_, ibHigh, ibLow, _] = f_lowerTfRange()
+    balanceHigh := ibHigh
+    balanceLow := ibLow
+    wasAbove := false
+    wasBelow := false
+    failedAbove := false
+    failedBelow := false
+    outsideBars := 0
+    state := 'Building IB'
+    side := 'inside'
+    lnHigh := line.new(time, ibHigh, time, ibHigh, xloc.bar_time, extend.none, ibColor, line.style_solid, 1)
+    lnLow := line.new(time, ibLow, time, ibLow, xloc.bar_time, extend.none, ibColor, line.style_solid, 1)
+    lnHighExt := line.new(time, ibHigh, time, ibHigh, xloc.bar_time, extend.none, ibColor, line.style_dotted, 1)
+    lnLowExt := line.new(time, ibLow, time, ibLow, xloc.bar_time, extend.none, ibColor, line.style_dotted, 1)
+    lblHigh := label.new(time, ibHigh, 'IBH · ' + str.tostring(ibHigh, format.mintick), xloc=xloc.bar_time, style=label.style_label_left, color=#00000000, textcolor=ibColor, size=size.small)
+    lblLow := label.new(time, ibLow, 'IBL · ' + str.tostring(ibLow, format.mintick), xloc=xloc.bar_time, style=label.style_label_left, color=#00000000, textcolor=ibColor, size=size.small)
+    if showMidline
+        ibMid = (ibHigh + ibLow) / 2
+        lnMid := line.new(time, ibMid, time, ibMid, xloc.bar_time, extend.none, ibmColor, line.style_dashed, 1)
+        lnMidExt := line.new(time, ibMid, time, ibMid, xloc.bar_time, extend.none, ibmColor, line.style_dashed, 1)
+        lblMid := label.new(time, ibMid, 'IBM · ' + str.tostring(ibMid, format.mintick), xloc=xloc.bar_time, style=label.style_label_left, color=#00000000, textcolor=ibmColor, size=size.small)
+
+if session and timeframeOK
+    balanceHigh := math.max(high, balanceHigh)
+    balanceLow := math.min(low, balanceLow)
+    balanceMid = (balanceHigh + balanceLow) / 2
+    if not na(lnHigh)
+        lnHigh.set_y1(balanceHigh), lnHigh.set_xy2(time, balanceHigh)
+    if not na(lnLow)
+        lnLow.set_y1(balanceLow), lnLow.set_xy2(time, balanceLow)
+    if not na(lnHighExt)
+        lnHighExt.set_y1(balanceHigh), lnHighExt.set_xy2(time, balanceHigh)
+    if not na(lnLowExt)
+        lnLowExt.set_y1(balanceLow), lnLowExt.set_xy2(time, balanceLow)
+    if showMidline and not na(lnMid)
+        lnMid.set_y1(balanceMid), lnMid.set_xy2(time, balanceMid)
+        lnMidExt.set_y1(balanceMid), lnMidExt.set_xy2(time, balanceMid)
+    if not na(lblHigh)
+        lblHigh.set_xy(time, balanceHigh), lblHigh.set_text('IBH · ' + str.tostring(balanceHigh, format.mintick))
+    if not na(lblLow)
+        lblLow.set_xy(time, balanceLow), lblLow.set_text('IBL · ' + str.tostring(balanceLow, format.mintick))
+    if showMidline and not na(lblMid)
+        lblMid.set_xy(time, balanceMid), lblMid.set_text('IBM · ' + str.tostring(balanceMid, format.mintick))
+else if timeframeOK
+    if not na(lnHighExt)
+        lnHighExt.set_x2(time)
+    if not na(lnLowExt)
+        lnLowExt.set_x2(time)
+    if not na(lnMidExt)
+        lnMidExt.set_x2(time)
+    if not na(lblHigh)
+        lblHigh.set_x(time)
+    if not na(lblLow)
+        lblLow.set_x(time)
+    if not na(lblMid)
+        lblMid.set_x(time)
+
+ibComplete = timeframeOK and not session and not na(balanceHigh) and not na(balanceLow) and time >= ibEndTime
+if ibComplete
+    if close > balanceHigh
+        side := 'above'
+        if not wasAbove
+            wasAbove := true
+            outsideBars := 1
+            state := 'Probing Above'
+        else
+            outsideBars += 1
+        if outsideBars >= 2
+            state := 'Accepted Above'
+    else if close < balanceLow
+        side := 'below'
+        if not wasBelow
+            wasBelow := true
+            outsideBars := 1
+            state := 'Probing Below'
+        else
+            outsideBars += 1
+        if outsideBars >= 2
+            state := 'Accepted Below'
+    else
+        if wasAbove
+            failedAbove := true
+            state := 'Failed Above'
+        if wasBelow
+            failedBelow := true
+            state := 'Failed Below'
+        if failedAbove and failedBelow
+            state := 'Two-Sided Auction'
+        else if wasAbove or wasBelow
+            state := 'Rejection'
+        else
+            state := 'Balanced'
+        outsideBars := 0
+
+regime = f_regime(state, failedAbove, failedBelow)
+bias = f_bias(state, side)
+
+ibRangeSize = not na(balanceHigh) and not na(balanceLow) ? balanceHigh - balanceLow : na
+if showProjections and ibComplete and not na(ibRangeSize)
+    p1u = balanceHigh + ibRangeSize * 0.5
+    p2u = balanceHigh + ibRangeSize
+    p3u = balanceHigh + ibRangeSize * 1.5
+    p1d = balanceLow - ibRangeSize * 0.5
+    p2d = balanceLow - ibRangeSize
+    p3d = balanceLow - ibRangeSize * 1.5
+    if na(lnProjUp1)
+        lnProjUp1 := line.new(time, p1u, time, p1u, xloc.bar_time, extend.right, ibmPColor, line.style_dotted, 1)
+        lnProjUp2 := line.new(time, p2u, time, p2u, xloc.bar_time, extend.right, ibmPColor, line.style_dotted, 1)
+        lnProjUp3 := line.new(time, p3u, time, p3u, xloc.bar_time, extend.right, ibmPColor, line.style_dotted, 1)
+        lnProjDn1 := line.new(time, p1d, time, p1d, xloc.bar_time, extend.right, ibmPColor, line.style_dotted, 1)
+        lnProjDn2 := line.new(time, p2d, time, p2d, xloc.bar_time, extend.right, ibmPColor, line.style_dotted, 1)
+        lnProjDn3 := line.new(time, p3d, time, p3d, xloc.bar_time, extend.right, ibmPColor, line.style_dotted, 1)
+
+if showDecisionCandles and ibComplete
+    barcolor(close > balanceHigh ? decisionBullColor : close < balanceLow ? decisionBearColor : na)
+
+var table dash = na
+if showDashboard and barstate.islast
+    if na(dash)
+        dash := table.new(position.top_right, 2, 8, border_width=1)
+    table.cell(dash, 0, 0, 'SMARTVIBE IB AUCTION', text_color=color.white, bgcolor=color.new(color.blue, 20))
+    table.cell(dash, 1, 0, 'SUPPORTING', text_color=color.white, bgcolor=color.new(color.blue, 20))
+    table.cell(dash, 0, 1, 'State')
+    table.cell(dash, 1, 1, state)
+    table.cell(dash, 0, 2, 'Regime')
+    table.cell(dash, 1, 2, regime)
+    table.cell(dash, 0, 3, 'Bias')
+    table.cell(dash, 1, 3, bias)
+    table.cell(dash, 0, 4, 'IBH')
+    table.cell(dash, 1, 4, na(balanceHigh) ? '-' : str.tostring(balanceHigh, format.mintick))
+    table.cell(dash, 0, 5, 'IBL')
+    table.cell(dash, 1, 5, na(balanceLow) ? '-' : str.tostring(balanceLow, format.mintick))
+    table.cell(dash, 0, 6, 'IB Range')
+    table.cell(dash, 1, 6, na(ibRangeSize) ? '-' : str.tostring(ibRangeSize, format.mintick))
+    table.cell(dash, 0, 7, 'Methodology')
+    table.cell(dash, 1, 7, 'SmartVibe Primary Authority')
