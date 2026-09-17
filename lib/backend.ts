@@ -7,7 +7,8 @@ export async function invokeFunction<T>(name: string, body: unknown): Promise<T>
   return data as T;
 }
 
-export type MarketQuote = { symbol: string; price: number; change: number; source: string; stale?: boolean };
+export type MarketCandle = { time: string; close: number };
+export type MarketQuote = { symbol: string; price: number; change: number; source: string; stale?: boolean; asOf?: string; candles?: MarketCandle[] };
 export type ConsensusSignal = {
   signalId?: string;
   symbol: string;
@@ -24,7 +25,7 @@ export type ConsensusSignal = {
   evidence?: unknown;
 };
 export type SubscriptionQuota = { plan: string; packageKey?: string | null; packageName?: string | null; pricePaidLsl?: number; includedSignals: number; signalsUsed: number; signalsPending: number; signalsUnused: number; signalsRemaining: number; carryoverSignals: number; carryoverCreditLsl: number; scannerAccess?: boolean; whatsappGroupAccess?: boolean; allServicesAccess?: boolean };
-export type LicenseValidation = { valid: boolean; message: string; expiresAt?: string | null; plan?: string; packageKey?: string | null; packageName?: string | null; pricePaidLsl?: number; includedSignals?: number; signalsUsed?: number; signalsPending?: number; signalsUnused?: number; signalsRemaining?: number; carryoverSignals?: number; carryoverCreditLsl?: number; scannerAccess?: boolean; whatsappGroupAccess?: boolean; allServicesAccess?: boolean };
+export type LicenseValidation = { valid: boolean; message: string; expiresAt?: string | null; plan?: string; packageKey?: string | null; packageName?: string | null; pricePaidLsl?: number; includedSignals?: number; signalsUsed?: number; signalsPending?: number; signalsRemaining?: number; carryoverSignals?: number; carryoverCreditLsl?: number; scannerAccess?: boolean; whatsappGroupAccess?: boolean; allServicesAccess?: boolean };
 export type LiveExecutionResult = { ok: boolean; mode: 'LIVE_ONLY'; clientOrderId?: string; signalId?: string; externalOrderId?: string; brokerPrice?: number; direction?: 'BUY'|'SELL'; lot?: number; sl?: number|null; tp?: number|null; error?: string; reconciliationRequired?: boolean; idempotent?: boolean; };
 export type ChartScanResult = {
   ok: boolean;
@@ -35,16 +36,7 @@ export type ChartScanResult = {
   chartReadable: boolean;
   direction: 'BUY' | 'SELL' | 'WAIT';
   confidence: number;
-  methodology: {
-    higherTimeframeDirection: string;
-    m30Confirmation: string;
-    resistanceSupportRbs: string;
-    engulfing: string;
-    lowerTimeframeConfirmation: string;
-    trendlinePriceAction: string;
-    structuralInvalidation: string;
-    continuationManagement: string;
-  };
+  methodology: { higherTimeframeDirection: string; m30Confirmation: string; resistanceSupportRbs: string; engulfing: string; lowerTimeframeConfirmation: string; trendlinePriceAction: string; structuralInvalidation: string; continuationManagement: string; };
   feedback: string;
   warnings: string[];
   evidence: string[];
