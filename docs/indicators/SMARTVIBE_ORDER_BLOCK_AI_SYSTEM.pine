@@ -1,0 +1,137 @@
+//@version=6
+// SmartVibe integration of the Order Block Intelligence / KNN concept.
+// Original source attribution: Dots3Red, MPL 2.0. This file is an adaptation/integration;
+// the original license and attribution must remain with any redistribution of the source.
+indicator("SMARTVIBE ORDER BLOCK AI SYSTEM", shorttitle="SV Order Block AI", overlay=true, max_boxes_count=300, max_labels_count=300, max_lines_count=100, max_bars_back=2000)
+
+atrLen = input.int(14, "ATR Length", minval=2)
+strengthATR = input.float(1.0, "Minimum Displacement ATR", minval=0.1, step=0.1)
+volLen = input.int(20, "Volume Baseline", minval=5)
+knnK = input.int(7, "KNN Neighbours", minval=1, maxval=25)
+maxSamples = input.int(200, "Training Samples", minval=20, maxval=1000)
+outcomeWindow = input.int(20, "Outcome Window", minval=2, maxval=200)
+respectATR = input.float(0.5, "Respect Distance ATR", minval=0.05, step=0.05)
+keepTested = input.bool(true, "Keep Tested Zones")
+showZones = input.bool(true, "Show Order Blocks")
+
+atr = ta.atr(atrLen)
+volBase = ta.sma(volume, volLen)
+volRatio = volBase > 0 ? volume / volBase : 1.0
+trendPos = ta.ema(close, 21) > ta.ema(close, 55) ? 1.0 : 0.0
+
+var float[] fSize = array.new_float()
+var float[] fDisp = array.new_float()
+var float[] fVol = array.new_float()
+var float[] fAtr = array.new_float()
+var float[] fTrend = array.new_float()
+var int[] fOutcome = array.new_int()
+
+var float[] obTop = array.new_float()
+var float[] obBot = array.new_float()
+var int[] obDir = array.new_int()
+var int[] obState = array.new_int() // 0 untested, 1 respected, 2 violated
+var int[] obBorn = array.new_int()
+var float[] obProb = array.new_float()
+
+f_add_sample(float a, float b, float c, float d, float e, int result) =>
+    array.push(fSize, a), array.push(fDisp, b), array.push(fVol, c), array.push(fAtr, d), array.push(fTrend, e), array.push(fOutcome, result)
+    while array.size(fOutcome) > maxSamples
+        array.shift(fSize), array.shift(fDisp), array.shift(fVol), array.shift(fAtr), array.shift(fTrend), array.shift(fOutcome)
+
+f_knn(float q1, float q2, float q3, float q4, float q5) =>
+    float[] dist = array.new_float()
+    int n = array.size(fOutcome)
+    if n == 0
+        0.5
+    else
+        for i = 0 to n - 1
+            d1 = q1 - array.get(fSize, i)
+            d2 = q2 - array.get(fDisp, i)
+            d3 = q3 - array.get(fVol, i)
+            d4 = q4 - array.get(fAtr, i)
+            d5 = q5 - array.get(fTrend, i)
+            array.push(dist, math.sqrt(d1*d1 + d2*d2 + d3*d3 + d4*d4 + d5*d5))
+        float weighted = 0.0
+        float total = 0.0
+        used = math.min(knnK, n)
+        for k = 0 to used - 1
+            best = 1e10
+            idx = -1
+            for i = 0 to n - 1
+                di = array.get(dist, i)
+                if di < best
+                    best := di
+                    idx := i
+            if idx >= 0
+                w = 1.0 / (best + 0.0001)
+                weighted += w * array.get(fOutcome, idx)
+                total += w
+                array.set(dist, idx, 1e10)
+        total > 0 ? weighted / total : 0.5
+
+// A displacement candle following an opposite base candle creates the candidate order block.
+bullDisp = close > open and (close - open) >= atr * strengthATR
+bearDisp = close < open and (open - close) >= atr * strengthATR
+baseBear = close[1] < open[1]
+baseBull = close[1] > open[1]
+newBull = bullDisp and baseBear
+newBear = bearDisp and baseBull
+
+if newBull
+    sizeN = atr > 0 ? (high[1] - low[1]) / atr : 0.0
+    dispN = atr > 0 ? (close - open) / atr : 0.0
+    p = f_knn(sizeN, dispN, volRatio, atr > 0 ? atr / close : 0.0, trendPos)
+    array.push(obTop, high[1]), array.push(obBot, low[1]), array.push(obDir, 1), array.push(obState, 0), array.push(obBorn, bar_index), array.push(obProb, p)
+
+if newBear
+    sizeN = atr > 0 ? (high[1] - low[1]) / atr : 0.0
+    dispN = atr > 0 ? (open - close) / atr : 0.0
+    p = f_knn(sizeN, dispN, volRatio, atr > 0 ? atr / close : 0.0, trendPos)
+    array.push(obTop, high[1]), array.push(obBot, low[1]), array.push(obDir, -1), array.push(obState, 0), array.push(obBorn, bar_index), array.push(obProb, p)
+
+while array.size(obState) > 80
+    array.shift(obTop), array.shift(obBot), array.shift(obDir), array.shift(obState), array.shift(obBorn), array.shift(obProb)
+
+if array.size(obState) > 0
+    for i = array.size(obState) - 1 to 0
+        state = array.get(obState, i)
+        dir = array.get(obDir, i)
+        top = array.get(obTop, i)
+        bot = array.get(obBot, i)
+        born = array.get(obBorn, i)
+        touched = high >= bot and low <= top
+        respected = dir == 1 ? close >= bot + atr * respectATR : close <= top - atr * respectATR
+        violated = dir == 1 ? close < bot : close > top
+        if state == 0 and touched
+            if violated
+                array.set(obState, i, 2)
+                age = bar_index - born
+                if age <= outcomeWindow
+                    p = array.get(obProb, i)
+                    f_add_sample((top-bot)/atr, math.abs(close-open)/atr, volRatio, atr/close, trendPos, 0)
+            else if respected
+                array.set(obState, i, 1)
+                age = bar_index - born
+                if age <= outcomeWindow
+                    f_add_sample((top-bot)/atr, math.abs(close-open)/atr, volRatio, atr/close, trendPos, 1)
+        if state != 0 and not keepTested
+            array.remove(obTop, i), array.remove(obBot, i), array.remove(obDir, i), array.remove(obState, i), array.remove(obBorn, i), array.remove(obProb, i)
+
+if barstate.islast and showZones and array.size(obState) > 0
+    for i = 0 to array.size(obState) - 1
+        top = array.get(obTop, i)
+        bot = array.get(obBot, i)
+        dir = array.get(obDir, i)
+        state = array.get(obState, i)
+        p = array.get(obProb, i)
+        labelText = dir == 1 ? "SV BULL OB" : "SV BEAR OB"
+        labelText += " • " + str.tostring(math.round(p * 100)) + "% respect"
+        if state == 1
+            labelText += " • RESPECTED"
+        if state == 2
+            labelText += " • VIOLATED"
+        box.new(bar_index - 1, top, bar_index + 15, bot, bgcolor=dir == 1 ? color.new(color.green, 88) : color.new(color.red, 88), border_color=dir == 1 ? color.new(color.green, 30) : color.new(color.red, 30))
+        label.new(bar_index, dir == 1 ? top : bot, labelText, style=dir == 1 ? label.style_label_down : label.style_label_up, textcolor=color.white, color=dir == 1 ? color.new(color.green, 20) : color.new(color.red, 20), size=size.tiny)
+
+alertcondition(newBull, "New bullish order block", "SMARTVIBE Order Block AI detected a bullish order block")
+alertcondition(newBear, "New bearish order block", "SMARTVIBE Order Block AI detected a bearish order block")
