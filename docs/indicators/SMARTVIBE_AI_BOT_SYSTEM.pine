@@ -1,0 +1,139 @@
+//@version=6
+indicator("SMARTVIBE AI-BOT SYSTEM", overlay=true, max_labels_count=500, max_lines_count=500, max_boxes_count=100)
+
+// SMARTVIBE AI-BOT SYSTEM
+// Standalone technical indicator derived from the supplied EMA Trend System.
+// It is an independent signal source and does not replace SmartVibe Primary Methodology.
+
+showRibbon = input.bool(true, "Show SmartVibe EMA Ribbon", group="SmartVibe EMA Settings")
+ema1Len = input.int(5, "EMA 1 Length", group="SmartVibe EMA Settings")
+ema2Len = input.int(11, "EMA 2 Length", group="SmartVibe EMA Settings")
+ema3Len = input.int(15, "EMA 3 Length", group="SmartVibe EMA Settings")
+ema4Len = input.int(18, "EMA 4 Length", group="SmartVibe EMA Settings")
+ema5Len = input.int(21, "EMA 5 Length", group="SmartVibe EMA Settings")
+ema6Len = input.int(24, "EMA 6 Length", group="SmartVibe EMA Settings")
+ema7Len = input.int(28, "EMA 7 Length", group="SmartVibe EMA Settings")
+ema8Len = input.int(34, "EMA 8 Length", group="SmartVibe EMA Settings")
+emaExtraLen = input.int(200, "SmartVibe Reference EMA", group="SmartVibe EMA Settings")
+
+tpCount = input.int(4, "Number of Take Profits", minval=1, maxval=4, group="SmartVibe Trade Management")
+atrMultiplier = input.float(2.0, "ATR Multiplier for SL", group="SmartVibe Trade Management")
+atrTPFactor = input.float(1.0, "TP Multiplier relative to SL", group="SmartVibe Trade Management")
+atrLen = input.int(14, "ATR Length", group="SmartVibe Trade Management")
+showTPSLLines = input.bool(true, "Show SmartVibe TP/SL Lines", group="SmartVibe Trade Management")
+
+showDashboard = input.bool(true, "Show SmartVibe Trend Dashboard", group="SmartVibe Dashboard")
+showScreener = input.bool(true, "Show SmartVibe Screener", group="SmartVibe Screener")
+maxSymbols = input.int(9, "Max Symbols", minval=1, maxval=9, group="SmartVibe Screener")
+
+symbol1 = input.symbol("NSE:BANKNIFTY", "Symbol 1", group="SmartVibe Screener Symbols")
+symbol2 = input.symbol("NSE:NIFTY", "Symbol 2", group="SmartVibe Screener Symbols")
+symbol3 = input.symbol("NSE:SBIN", "Symbol 3", group="SmartVibe Screener Symbols")
+symbol4 = input.symbol("NSE:HCLTECH", "Symbol 4", group="SmartVibe Screener Symbols")
+symbol5 = input.symbol("NSE:ICICIBANK", "Symbol 5", group="SmartVibe Screener Symbols")
+symbol6 = input.symbol("NSE:RELIANCE", "Symbol 6", group="SmartVibe Screener Symbols")
+symbol7 = input.symbol("NSE:TATASTEEL", "Symbol 7", group="SmartVibe Screener Symbols")
+symbol8 = input.symbol("NSE:HAVELLS", "Symbol 8", group="SmartVibe Screener Symbols")
+symbol9 = input.symbol("NSE:ITC", "Symbol 9", group="SmartVibe Screener Symbols")
+
+ema1 = ta.ema(close, ema1Len)
+ema2 = ta.ema(close, ema2Len)
+ema3 = ta.ema(close, ema3Len)
+ema4 = ta.ema(close, ema4Len)
+ema5 = ta.ema(close, ema5Len)
+ema6 = ta.ema(close, ema6Len)
+ema7 = ta.ema(close, ema7Len)
+ema8 = ta.ema(close, ema8Len)
+ema200 = ta.ema(close, emaExtraLen)
+
+ribbonBullish = ema8 < ema2
+buySignal = ta.crossover(ema2, ema8) and barstate.isconfirmed
+sellSignal = ta.crossover(ema8, ema2) and barstate.isconfirmed
+
+plot(ema1, "SmartVibe EMA 5", color=showRibbon ? (ribbonBullish ? #1573d4 : color.gray) : na, linewidth=2)
+plot(ema2, "SmartVibe EMA 11", color=showRibbon ? (ribbonBullish ? #3096ff : color.gray) : na, linewidth=2)
+plot(ema3, "SmartVibe EMA 15", color=showRibbon ? (ribbonBullish ? #57abff : color.gray) : na, linewidth=2)
+plot(ema4, "SmartVibe EMA 18", color=showRibbon ? (ribbonBullish ? #85c2ff : color.gray) : na, linewidth=2)
+plot(ema5, "SmartVibe EMA 21", color=showRibbon ? (ribbonBullish ? #9bcdff : color.gray) : na, linewidth=2)
+plot(ema6, "SmartVibe EMA 24", color=showRibbon ? (ribbonBullish ? #b3d9ff : color.gray) : na, linewidth=2)
+plot(ema7, "SmartVibe EMA 28", color=showRibbon ? (ribbonBullish ? #c9e5ff : color.gray) : na, linewidth=2)
+plot(ema8, "SmartVibe EMA 34", color=showRibbon ? (ribbonBullish ? #dfecfb : color.gray) : na, linewidth=2)
+plot(ema200, "SmartVibe EMA 200", color=color.purple, linewidth=2)
+
+plotshape(buySignal, title="SMARTVIBE BUY", text="SMARTVIBE BUY", style=shape.labelup, location=location.belowbar, color=color.green, textcolor=color.white, size=size.small)
+plotshape(sellSignal, title="SMARTVIBE SELL", text="SMARTVIBE SELL", style=shape.labeldown, location=location.abovebar, color=color.red, textcolor=color.white, size=size.small)
+
+atr = ta.atr(atrLen)
+var float entryLevel = na
+var float currentSL = na
+var int direction = 0
+var bool tradeActive = false
+var array<float> tpLevels = array.new_float()
+
+if buySignal or sellSignal
+    entryLevel := close
+    direction := buySignal ? 1 : -1
+    currentSL := entryLevel - direction * atr * atrMultiplier
+    array.clear(tpLevels)
+    for i = 1 to tpCount
+        array.push(tpLevels, entryLevel + direction * atr * atrMultiplier * atrTPFactor * i)
+    tradeActive := true
+
+slHit = tradeActive and ((direction > 0 and low <= currentSL) or (direction < 0 and high >= currentSL))
+if slHit
+    tradeActive := false
+
+getSymbolName(fullSymbol) =>
+    parts = str.split(fullSymbol, ":")
+    array.size(parts) > 1 ? array.get(parts, 1) : fullSymbol
+
+s1e2 = request.security(symbol1, timeframe.period, ta.ema(close, ema2Len), lookahead=barmerge.lookahead_off)
+s1e8 = request.security(symbol1, timeframe.period, ta.ema(close, ema8Len), lookahead=barmerge.lookahead_off)
+s2e2 = request.security(symbol2, timeframe.period, ta.ema(close, ema2Len), lookahead=barmerge.lookahead_off)
+s2e8 = request.security(symbol2, timeframe.period, ta.ema(close, ema8Len), lookahead=barmerge.lookahead_off)
+s3e2 = request.security(symbol3, timeframe.period, ta.ema(close, ema2Len), lookahead=barmerge.lookahead_off)
+s3e8 = request.security(symbol3, timeframe.period, ta.ema(close, ema8Len), lookahead=barmerge.lookahead_off)
+s4e2 = request.security(symbol4, timeframe.period, ta.ema(close, ema2Len), lookahead=barmerge.lookahead_off)
+s4e8 = request.security(symbol4, timeframe.period, ta.ema(close, ema8Len), lookahead=barmerge.lookahead_off)
+s5e2 = request.security(symbol5, timeframe.period, ta.ema(close, ema2Len), lookahead=barmerge.lookahead_off)
+s5e8 = request.security(symbol5, timeframe.period, ta.ema(close, ema8Len), lookahead=barmerge.lookahead_off)
+s6e2 = request.security(symbol6, timeframe.period, ta.ema(close, ema2Len), lookahead=barmerge.lookahead_off)
+s6e8 = request.security(symbol6, timeframe.period, ta.ema(close, ema8Len), lookahead=barmerge.lookahead_off)
+s7e2 = request.security(symbol7, timeframe.period, ta.ema(close, ema2Len), lookahead=barmerge.lookahead_off)
+s7e8 = request.security(symbol7, timeframe.period, ta.ema(close, ema8Len), lookahead=barmerge.lookahead_off)
+s8e2 = request.security(symbol8, timeframe.period, ta.ema(close, ema2Len), lookahead=barmerge.lookahead_off)
+s8e8 = request.security(symbol8, timeframe.period, ta.ema(close, ema8Len), lookahead=barmerge.lookahead_off)
+s9e2 = request.security(symbol9, timeframe.period, ta.ema(close, ema2Len), lookahead=barmerge.lookahead_off)
+s9e8 = request.security(symbol9, timeframe.period, ta.ema(close, ema8Len), lookahead=barmerge.lookahead_off)
+
+var table screener = table.new(position.top_right, 2, 10, bgcolor=color.new(color.black, 75), border_width=1)
+if showScreener and barstate.islast
+    table.cell(screener, 0, 0, "SMARTVIBE AI-BOT SYSTEM", text_color=color.white, bgcolor=#03f7ff)
+    table.cell(screener, 1, 0, "TREND", text_color=color.black, bgcolor=#03f7ff)
+    names = array.from(getSymbolName(symbol1), getSymbolName(symbol2), getSymbolName(symbol3), getSymbolName(symbol4), getSymbolName(symbol5), getSymbolName(symbol6), getSymbolName(symbol7), getSymbolName(symbol8), getSymbolName(symbol9))
+    e2s = array.from(s1e2,s2e2,s3e2,s4e2,s5e2,s6e2,s7e2,s8e2,s9e2)
+    e8s = array.from(s1e8,s2e8,s3e8,s4e8,s5e8,s6e8,s7e8,s8e8,s9e8)
+    for i = 0 to maxSymbols - 1
+        e2v = array.get(e2s, i)
+        e8v = array.get(e8s, i)
+        bull = e2v > e8v
+        table.cell(screener, 0, i + 1, array.get(names, i), text_color=color.white)
+        table.cell(screener, 1, i + 1, bull ? "SMARTVIBE BULLISH" : "SMARTVIBE BEARISH", text_color=bull ? color.lime : color.red)
+
+if showDashboard and barstate.islast
+    var table dashboard = table.new(position.bottom_right, 2, 6, bgcolor=color.new(color.black, 75), border_width=1)
+    table.cell(dashboard, 0, 0, "SMARTVIBE AI-BOT SYSTEM", text_color=color.white, bgcolor=#03f7ff)
+    table.cell(dashboard, 1, 0, "STATUS", text_color=color.black, bgcolor=#03f7ff)
+    table.cell(dashboard, 0, 1, "Signal", text_color=color.white)
+    table.cell(dashboard, 1, 1, buySignal ? "SMARTVIBE BUY" : sellSignal ? "SMARTVIBE SELL" : "WAIT", text_color=buySignal ? color.lime : sellSignal ? color.red : color.yellow)
+    table.cell(dashboard, 0, 2, "EMA 11 / 34", text_color=color.white)
+    table.cell(dashboard, 1, 2, ema2 > ema8 ? "BULLISH" : "BEARISH", text_color=ema2 > ema8 ? color.lime : color.red)
+    table.cell(dashboard, 0, 3, "EMA 200", text_color=color.white)
+    table.cell(dashboard, 1, 3, close > ema200 ? "ABOVE" : "BELOW", text_color=close > ema200 ? color.lime : color.red)
+    table.cell(dashboard, 0, 4, "ATR", text_color=color.white)
+    table.cell(dashboard, 1, 4, str.tostring(atr, format.mintick), text_color=color.white)
+    table.cell(dashboard, 0, 5, "Authority", text_color=color.white)
+    table.cell(dashboard, 1, 5, "SMARTVIBE", text_color=color.aqua)
+
+alertcondition(buySignal, title="SMARTVIBE AI-BOT BUY", message="SMARTVIBE AI-BOT SYSTEM BUY signal")
+alertcondition(sellSignal, title="SMARTVIBE AI-BOT SELL", message="SMARTVIBE AI-BOT SYSTEM SELL signal")
