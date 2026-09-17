@@ -28,6 +28,7 @@ export default function More() {
     </Card>
     <Button title="SmartVibe Methodology" onPress={() => router.push('/education')} />
     <Button title="Chart Scanner" onPress={() => router.push('/scanner')} />
+    <Button title="SMARTVIBE AI-BOT SYSTEM • Premium Pro" onPress={() => router.push('/smartvibe-ai-bot-system')} />
     <Button title="AI Assistant" onPress={() => router.push('/ai')} />
     <Button title="My Profile & Subscription" onPress={() => router.push('/profile')} />
     <Button title="WhatsApp Support" onPress={openWhatsApp} />
