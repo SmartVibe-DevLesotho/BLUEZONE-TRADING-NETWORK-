@@ -7,8 +7,7 @@ import { validateLicense } from '@/lib/backend';
 import { getDeviceId } from '@/lib/device';
 import { C } from '@/components/ui';
 
-const screens = [['markets','Markets','stats-chart'],['chart','Chart','analytics'],['sessions','Sessions','time'],['autotrade','Signals','flash'],['more','More','menu']] as const;
-// Preview access is deliberately limited to development builds. A release build can never bypass auth/license checks via an env flag.
+const screens = [['markets','Markets','stats-chart'],['chart','Chart','analytics'],['sessions','Sessions','time'],['autotrade','Automation','flash'],['more','More','menu']] as const;
 const previewMode = __DEV__ && process.env.EXPO_PUBLIC_PREVIEW_MODE === 'true';
 
 export default function TabsLayout() {
