@@ -101,7 +101,7 @@ Deno.serve(async (req) => {
     if (image.length > 12000000) return json({ error: "Screenshot is too large." }, 413);
 
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${GEMINI_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -113,7 +113,7 @@ Deno.serve(async (req) => {
     );
 
     const data = await response.json();
-    const raw = data?.candidates?.[0]?.content?.parts?.find((part: any) => part?.text)?.text;
+    const raw = data?.candidates?.[0]?.content?.parts?.find((part: any) => typeof part?.text === "string" && part.text.trim())?.text;
     if (!response.ok || !raw) {
       return json({ ...empty("The visual AI provider did not return usable analysis."), status: "unavailable" }, 503);
     }
