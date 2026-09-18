@@ -29,7 +29,7 @@ function CandlestickChart({ quote }: { quote: MarketQuote }) {
         </>;
       })}
     </Svg>
-  </>;
+  </View>;
 }
 
 function SignalRail({ quote }: { quote: MarketQuote }) {
