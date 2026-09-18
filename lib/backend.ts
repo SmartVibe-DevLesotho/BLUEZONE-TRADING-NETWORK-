@@ -44,6 +44,7 @@ export type LicenseValidation = { valid: boolean; message: string; expiresAt?: s
 export type LiveExecutionResult = { ok: boolean; mode: 'LIVE_ONLY'; clientOrderId?: string; signalId?: string; externalOrderId?: string; brokerPrice?: number; direction?: 'BUY'|'SELL'; lot?: number; sl?: number|null; tp?: number|null; error?: string; reconciliationRequired?: boolean; idempotent?: boolean; };
 export type ChartScanResult = {
   ok: boolean; detectedInstrument: string | null; detectedInstrumentLabel: string | null; broker: string | null; timeframe: string | null; chartReadable: boolean; direction: 'BUY'|'SELL'|'WAIT'; confidence: number;
+  pineSetup?: { detected: boolean; source: string | null; direction: 'BUY'|'SELL'|'WAIT'|null; entry: number|null; stopLoss: number|null; tp1: number|null; tp2: number|null; tp3: number|null; tp4: number|null; description: string | null; };
   methodology: { higherTimeframeDirection: string; m30Confirmation: string; resistanceSupportRbs: string; engulfing: string; lowerTimeframeConfirmation: string; trendlinePriceAction: string; structuralInvalidation: string; continuationManagement: string; };
   feedback: string; warnings: string[]; evidence: string[];
 };
