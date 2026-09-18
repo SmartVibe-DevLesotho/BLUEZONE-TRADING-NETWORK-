@@ -14,7 +14,7 @@ function TradingViewStyleChart({ quote, indicators }: { quote: MarketQuote; indi
   if(candles.length<2) return <Text style={{color:C.muted,marginTop:12}}>Live OHLC history is not available yet.</Text>;
   const width=1100,height=520,padX=18,padY=24;
   const highs=candles.map(c=>c.high), lows=candles.map(c=>c.low);
-  const allValues=[...highs,...lows,...indicators.levels.map(x=>x.value),...indicators.zones.flatMap(z=>[z.top,z.bottom]),...indicators.htfCandles.flatMap(c=>[c.high,c.low])].filter(Number.isFinite);
+  const allValues=[...highs,...lows,...indicators.levels.map(x=>x.value),...indicators.zones.flatMap(z=>[z.top,z.bottom]),...indicators.htfCandles.flatMap(c=>[c.high,c.low])].filter(v=>Number.isFinite(v)) as number[];
   const min=Math.min(...allValues),max=Math.max(...allValues),span=max-min||1;
   const bodyWidth=Math.max(3,Math.min(8,(width-padX*2)/candles.length*.68));
   const xStep=(width-padX*2)/(candles.length-1);
