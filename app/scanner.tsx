@@ -9,6 +9,14 @@ function ResultRow({ label, value }: { label: string; value: string }) {
   return <View style={{ paddingVertical: 11, borderBottomWidth: 1, borderBottomColor: C.border }}><Text style={{ color: C.muted, fontSize: 10, fontWeight: '900', letterSpacing: 1 }}>{label}</Text><Text style={{ color: C.ink, marginTop: 4, lineHeight: 20 }}>{value || 'Not available'}</Text></View>;
 }
 
+function PriceRow({ label, value, tone }: { label: string; value?: number | null; tone?: 'entry'|'target'|'stop' }) {
+  if (value === null || value === undefined || !Number.isFinite(Number(value))) return null;
+  return <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: C.border }}>
+    <Text style={{ color: C.muted, fontWeight: '900', letterSpacing: .6 }}>{label}</Text>
+    <Text style={{ color: tone === 'stop' ? C.red : tone === 'target' ? '#39c35a' : C.gold, fontSize: 17, fontWeight: '900' }}>{Number(value).toFixed(3)}</Text>
+  </View>;
+}
+
 export default function Scanner() {
   const router = useRouter();
   const [imageUri, setImageUri] = useState('');
@@ -59,19 +67,42 @@ export default function Scanner() {
     } finally { setBusy(false); }
   }
 
+  const setup = result?.pineSetup;
+  const entry = Number(setup?.entry);
+  const stop = Number(setup?.stopLoss);
+  const targets = [setup?.tp1, setup?.tp2, setup?.tp3, setup?.tp4].map(Number).filter(Number.isFinite);
+  const risk = Number.isFinite(entry) && Number.isFinite(stop) ? Math.abs(entry - stop) : null;
+
   return <Screen><ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 30 }}>
     <Header title="SmartVibe Scanner" subtitle="Upload a chart screenshot from Deriv, MT5, TradingView or another broker." />
     <Card elevated>
       <Badge label="CANONICAL SMARTVIBE METHODOLOGY" tone="blue" />
       <Text style={{ color: C.ink, fontSize: 20, fontWeight: '900', marginTop: 10 }}>Instrument-locked chart analysis</Text>
-      <Text style={{ color: C.muted, lineHeight: 21, marginTop: 7 }}>The scanner reads the screenshot itself first. It must identify the instrument shown before giving feedback. A Gold/XAUUSD screenshot is analyzed as Gold — it is never silently treated as Nasdaq. If the symbol is unreadable, SmartVibe reports that instead of inventing one.</Text>
+      <Text style={{ color: C.muted, lineHeight: 21, marginTop: 7 }}>SmartVibe reads the screenshot itself first. It recognizes ordinary candles and Pine/TradingView-style Entry, SL and TP labels/levels. A missing symbol never becomes a guessed instrument.</Text>
     </Card>
-    {imageUri ? <Card><Image source={{ uri: imageUri }} style={{ width: '100%', height: 250, borderRadius: 14, backgroundColor: C.navy }} resizeMode="contain" /></Card> : null}
+    {imageUri ? <Card><Image source={{ uri: imageUri }} style={{ width: '100%', height: 300, borderRadius: 14, backgroundColor: C.navy }} resizeMode="contain" /></Card> : null}
     <Button title={imageUri ? 'Replace Chart Screenshot' : 'Upload Chart Screenshot'} onPress={chooseChart} disabled={busy} />
     {imageBase64 && !busy ? <Button title="SCAN CHART WITH SMARTVIBE AI" onPress={scanSelectedChart} disabled={busy} /> : null}
-    {busy ? <LoadingState label="SmartVibe is reading the chart and checking the Canonical SmartVibe Methodology…" /> : null}
+    {busy ? <LoadingState label="SmartVibe is reading candles, Pine labels, levels and the Canonical SmartVibe Methodology…" /> : null}
     {error ? <Card><Text style={{ color: C.red, fontWeight: '900' }}>Scanner error</Text><Text style={{ color: C.muted, marginTop: 6, lineHeight: 20 }}>{error}</Text></Card> : null}
+
     {result ? <>
+      {setup?.detected ? <Card elevated>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+          <View><Text style={{ color: C.gold, fontSize: 11, fontWeight: '900', letterSpacing: 1 }}>PINE / CHART SETUP DETECTED</Text><Text style={{ color: C.ink, fontSize: 24, fontWeight: '900', marginTop: 4 }}>{setup.direction || 'WAIT'}</Text></View>
+          <Badge label={setup.source || 'SCREENSHOT'} tone="blue" />
+        </View>
+        <Text style={{ color: C.muted, marginTop: 7, lineHeight: 20 }}>{setup.description || 'Entry, stop and target levels were read from the uploaded chart.'}</Text>
+        <PriceRow label="ENTRY" value={setup.entry} tone="entry" />
+        <PriceRow label="SL" value={setup.stopLoss} tone="stop" />
+        <PriceRow label="TP 1" value={setup.tp1} tone="target" />
+        <PriceRow label="TP 2" value={setup.tp2} tone="target" />
+        <PriceRow label="TP 3" value={setup.tp3} tone="target" />
+        <PriceRow label="TP 4" value={setup.tp4} tone="target" />
+        {risk !== null ? <Text style={{ color: C.muted, marginTop: 10, fontSize: 12 }}>Risk distance: {risk.toFixed(3)} • Targets are preserved as staged levels; 150–200 pips is a management milestone, not a hard cap.</Text> : null}
+        {setup.direction && targets.length ? <View style={{ marginTop: 12, padding: 12, borderRadius: 12, backgroundColor: C.panel }}><Text style={{ color: C.cyan, fontWeight: '900' }}>PINE PLAN PRESERVATION</Text><Text style={{ color: C.muted, marginTop: 5, lineHeight: 19 }}>SmartVibe keeps the screenshot's Entry → SL → TP1 → TP2 → TP3 → TP4 structure instead of collapsing it into one target.</Text></View> : null}
+      </Card> : null}
+
       <Card elevated>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}><Text style={{ color: C.ink, fontSize: 21, fontWeight: '900' }}>{result.detectedInstrumentLabel || result.detectedInstrument || 'Instrument not confirmed'}</Text><Badge label={result.direction || 'WAIT'} tone={result.direction === 'BUY' ? 'positive' : result.direction === 'SELL' ? 'negative' : 'neutral'} /></View>
         <Text style={{ color: C.muted, marginTop: 7 }}>Confidence: {Number.isFinite(result.confidence) ? Math.round(result.confidence) : 0}% • Broker: {result.broker || 'Not identifiable'} • Timeframe: {result.timeframe || 'Not identifiable'}</Text>
