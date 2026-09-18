@@ -33,7 +33,7 @@ export default function Markets() {
       renderItem={({ item }) => <Card elevated>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
           <View><Text style={{ fontWeight: '900', fontSize: 17, color: C.ink }}>{item.symbol}</Text><Text style={{ color: C.muted, marginTop: 3 }}>{item.source}</Text></View>
-          <View style={{ alignItems: 'flex-end' }}><Text style={{ fontWeight: '900', fontSize: 18, color: C.ink }}>{Number.isFinite(item.price) ? item.price.toLocaleString() : '—'}</Text><Text style={{ color: item.change >= 0 ? C.green : C.red, fontWeight: '800', marginTop: 4 }}>{item.change >= 0 ? '+' : ''}{item.change}%</Text></View>
+          <View style={{ alignItems: 'flex-end' }}><Text style={{ fontWeight: '900', fontSize: 18, color: C.ink }}>{Number.isFinite(item.price) ? item.price.toLocaleString() : '—'}</Text><Text style={{ color: (item.change ?? 0) >= 0 ? C.green : C.red, fontWeight: '800', marginTop: 4 }}>{(item.change ?? 0) >= 0 ? '+' : ''}{item.change ?? 0}%</Text></View>
         </View>
       </Card>}
       ListEmptyComponent={!loading && !error ? <Text style={{ color: C.muted, textAlign: 'center', paddingTop: 30 }}>No live quotes are available right now.</Text> : null}
