@@ -47,6 +47,17 @@ export type ChartScanResult = {
   methodology: { higherTimeframeDirection: string; m30Confirmation: string; resistanceSupportRbs: string; engulfing: string; lowerTimeframeConfirmation: string; trendlinePriceAction: string; structuralInvalidation: string; continuationManagement: string; };
   feedback: string; warnings: string[]; evidence: string[];
 };
+
+export const getMt5MarketBars = async (symbol: string) => {
+  if (!supabase) throw new Error('Supabase is not configured.');
+  const { data: { session } } = await supabase.auth.getSession();
+  const base = process.env.EXPO_PUBLIC_SUPABASE_URL;
+  if (!session || !base) throw new Error('MT5 session is not available.');
+  const r = await fetch(base + '/functions/v1/mt5-gateway/market/' + encodeURIComponent(symbol), { headers: { Authorization: 'Bearer ' + session.access_token, apikey: process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? '' } });
+  const body = await r.json().catch(() => ({}));
+  if (!r.ok || !body?.ok) throw new Error(String(body?.error ?? 'MT5 live market feed unavailable.'));
+  return body as { ok: true; source: 'MT5_LIVE'; symbol: string; candles: MarketCandle[]; asOf?: string | null };
+};
 export const getMarketQuotes = (symbols: string[]) => invokeFunction<{quotes: MarketQuote[]}>('market-data', { symbols });
 export const getConsensusSignals = (input: {symbols: string[]; threshold?: number; session?: string; style?: string}) => invokeFunction<{ok?: boolean; signals: ConsensusSignal[]; subscription?: SubscriptionQuota; engineStatus?: EngineStatus}>('consensus-signals', input);
 export const executeLiveTrade = (input: { signalId: string; clientOrderId: string; lot: number }) => invokeFunction<LiveExecutionResult>('live-execute', input);
