@@ -23,13 +23,13 @@ function CandlestickChart({ quote }: { quote: MarketQuote }) {
       <Line x1={padX} y1={padY} x2={padX} y2={height-padY} stroke={C.border} strokeWidth="1"/>
       {candles.map((c,i)=>{
         const x=padX+i*xStep, up=c.close>=c.open, top=y(Math.max(c.open,c.close)), bottom=y(Math.min(c.open,c.close));
-        return <View key={c.time}>
+        return <>
           <Line x1={x} y1={y(c.high)} x2={x} y2={y(c.low)} stroke={up?C.green:C.red} strokeWidth="1.4"/>
           <Rect x={x-bodyWidth/2} y={Math.min(top,bottom)} width={bodyWidth} height={Math.max(2,Math.abs(bottom-top))} fill={up?C.green:C.red}/>
-        </View>;
+        </>;
       })}
     </Svg>
-  </View>;
+  </>;
 }
 
 function SignalRail({ quote }: { quote: MarketQuote }) {
