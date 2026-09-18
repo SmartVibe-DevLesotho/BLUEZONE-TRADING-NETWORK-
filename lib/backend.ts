@@ -8,7 +8,7 @@ export async function invokeFunction<T>(name: string, body: unknown): Promise<T>
     if (context && typeof context.json === 'function') {
       try {
         const payload = await context.json();
-        if (payload?.error) throw new Error(String(payload.error));
+        if (payload?.message || payload?.error) throw new Error(String(payload.message ?? payload.error));
       } catch (nested: any) {
         if (nested?.message && nested.message !== error.message) throw nested;
       }
@@ -38,6 +38,7 @@ export type ConsensusSignal = {
   management?: { milestonePips: 150; hardProfitCap: false; runner: true; exitRule: 'STRUCTURAL_INVALIDATION_OR_METHODOLOGY_REVERSAL'; trailingStop?: 'NONE_GENERIC' };
   evidence?: unknown;
 };
+export type EngineStatus = { marketData?: string; methodology?: string; generatedAt?: string; liveEvaluations?: number; approvedSignals?: number; waitReasons?: Array<{symbol:string;decision:string;reason?:string|null;dataStatus?:string|null}>; mt5QuoteFeed?: string };
 export type SubscriptionQuota = { plan: string; packageKey?: string | null; packageName?: string | null; pricePaidLsl?: number; includedSignals: number; signalsUsed: number; signalsPending: number; signalsUnused: number; signalsRemaining: number; carryoverSignals: number; carryoverCreditLsl: number; scannerAccess?: boolean; whatsappGroupAccess?: boolean; allServicesAccess?: boolean };
 export type LicenseValidation = { valid: boolean; message: string; expiresAt?: string | null; plan?: string; packageKey?: string | null; packageName?: string | null; pricePaidLsl?: number; includedSignals?: number; signalsUsed?: number; signalsRemaining?: number; scannerAccess?: boolean; whatsappGroupAccess?: boolean; allServicesAccess?: boolean; };
 export type LiveExecutionResult = { ok: boolean; mode: 'LIVE_ONLY'; clientOrderId?: string; signalId?: string; externalOrderId?: string; brokerPrice?: number; direction?: 'BUY'|'SELL'; lot?: number; sl?: number|null; tp?: number|null; error?: string; reconciliationRequired?: boolean; idempotent?: boolean; };
@@ -47,7 +48,7 @@ export type ChartScanResult = {
   feedback: string; warnings: string[]; evidence: string[];
 };
 export const getMarketQuotes = (symbols: string[]) => invokeFunction<{quotes: MarketQuote[]}>('market-data', { symbols });
-export const getConsensusSignals = (input: {symbols: string[]; threshold?: number; session?: string; style?: string}) => invokeFunction<{ok?: boolean; signals: ConsensusSignal[]; subscription?: SubscriptionQuota}>('consensus-signals', input);
+export const getConsensusSignals = (input: {symbols: string[]; threshold?: number; session?: string; style?: string}) => invokeFunction<{ok?: boolean; signals: ConsensusSignal[]; subscription?: SubscriptionQuota; engineStatus?: EngineStatus}>('consensus-signals', input);
 export const executeLiveTrade = (input: { signalId: string; clientOrderId: string; lot: number }) => invokeFunction<LiveExecutionResult>('live-execute', input);
 export const validateLicense = (input: {token?: string; action: 'activate'|'status'; deviceId: string}) => invokeFunction<LicenseValidation>('license-validate', input);
 export const sendAIMessage = (message: string, context?: unknown) => invokeFunction<{reply: string; status?: string}>('ai-chat', { message, context });
