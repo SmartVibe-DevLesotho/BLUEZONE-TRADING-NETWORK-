@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
 import Svg, { Line, Rect } from 'react-native-svg';
 import { Screen, Card, C, Badge } from '@/components/ui';
-import { getMarketQuotes, type MarketQuote } from '@/lib/backend';
+import { getMt5MarketBars, type MarketQuote } from '@/lib/backend';
 import { instruments } from '@/instruments';
 import { useTrading } from '@/context/TradingContext';
 
@@ -43,7 +43,7 @@ function SignalRail({ quote }: { quote: MarketQuote }) {
       <Text style={{fontWeight:'900',fontSize:18,color:C.ink}}>LIVE MARKET FEED</Text>
       <Badge label="OHLC" tone="positive"/>
     </View>
-    <Text style={{color:C.muted,marginTop:6,lineHeight:20}}>Real provider OHLC is rendered as candlesticks. No blue-line or synthetic candle fallback is used.</Text>
+    <Text style={{color:C.muted,marginTop:6,lineHeight:20}}>The chart is fed directly from the paired MT5 terminal through the SmartVibe bridge. No blue-line or synthetic candle fallback is used.</Text>
     <View style={{flexDirection:'row',flexWrap:'wrap',gap:10,marginTop:12}}>
       <Text style={{color:C.slate}}>O <Text style={{fontWeight:'900',color:C.ink}}>{last.open}</Text></Text>
       <Text style={{color:C.slate}}>H <Text style={{fontWeight:'900',color:C.ink}}>{last.high}</Text></Text>
@@ -63,7 +63,7 @@ export default function Chart(){
 
   const load=useCallback(async()=>{
     setLoading(true);setError('');
-    try{const result=await getMarketQuotes([selectedInstrument.symbol]);setQuote(result.quotes?.[0]??null);if(!result.quotes?.[0])setError(`No live market data is currently available for ${selectedInstrument.symbol}.`);}
+    try{const result=await getMt5MarketBars(selectedInstrument.symbol);const candles=result.candles??[];const last=candles.at(-1);if(!last){setQuote(null);setError('MT5 live OHLC feed has not supplied candles yet.');return;}setQuote({symbol:selectedInstrument.symbol,price:last.close,change:last.open?((last.close-last.open)/last.open)*100:null,source:result.source,stale:false,asOf:result.asOf??undefined,candles});}
     catch(e:any){setQuote(null);setError(e?.message??'Unable to load live market data.');}
     finally{setLoading(false);}
   },[selectedInstrument.symbol]);
@@ -71,7 +71,7 @@ export default function Chart(){
   useEffect(()=>{load();const timer=setInterval(load,15000);return()=>clearInterval(timer);},[load]);
   return <Screen><ScrollView showsVerticalScrollIndicator={false}>
     <Text style={{fontSize:30,fontWeight:'900',color:C.ink}}>Live MT5-Style Chart</Text>
-    <Text style={{color:C.muted,marginTop:4}}>Live OHLC candlesticks • 15-second refresh • no demo/simulated candles.</Text>
+    <Text style={{color:C.muted,marginTop:4}}>Live MT5 OHLC candlesticks • 15-second refresh • no demo/simulated candles.</Text>
     <Card elevated>
       <View style={{flexDirection:'row',justifyContent:'space-between',alignItems:'center'}}>
         <View><Text style={{fontWeight:'900',color:C.ink}}>Instrument</Text><Text style={{fontSize:24,fontWeight:'900',marginTop:6,color:C.ink}}>{selectedInstrument.symbol}</Text></View>
