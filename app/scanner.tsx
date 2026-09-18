@@ -100,7 +100,7 @@ export default function Scanner() {
         <PriceRow label="TP 3" value={setup.tp3} tone="target" />
         <PriceRow label="TP 4" value={setup.tp4} tone="target" />
         {risk !== null ? <Text style={{ color: C.muted, marginTop: 10, fontSize: 12 }}>Risk distance: {risk.toFixed(3)} • Targets are preserved as staged levels; 150–200 pips is a management milestone, not a hard cap.</Text> : null}
-        {setup.direction && targets.length ? <View style={{ marginTop: 12, padding: 12, borderRadius: 12, backgroundColor: C.panel }}><Text style={{ color: C.cyan, fontWeight: '900' }}>PINE PLAN PRESERVATION</Text><Text style={{ color: C.muted, marginTop: 5, lineHeight: 19 }}>SmartVibe keeps the screenshot's Entry → SL → TP1 → TP2 → TP3 → TP4 structure instead of collapsing it into one target.</Text></View> : null}
+        {setup.direction && targets.length ? <View style={{ marginTop: 12, padding: 12, borderRadius: 12, backgroundColor: C.card }}><Text style={{ color: C.cyan, fontWeight: '900' }}>PINE PLAN PRESERVATION</Text><Text style={{ color: C.muted, marginTop: 5, lineHeight: 19 }}>SmartVibe keeps the screenshot's Entry → SL → TP1 → TP2 → TP3 → TP4 structure instead of collapsing it into one target.</Text></View> : null}
       </Card> : null}
 
       <Card elevated>
