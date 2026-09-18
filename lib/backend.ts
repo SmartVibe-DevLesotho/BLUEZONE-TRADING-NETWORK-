@@ -18,7 +18,7 @@ export async function invokeFunction<T>(name: string, body: unknown): Promise<T>
   return data as T;
 }
 
-export type MarketCandle = { time: string; open: number; high: number; low: number; close: number };
+export type MarketCandle = { time: string; open: number; high: number; low: number; close: number; volume?: number };
 export type MarketQuote = { symbol: string; price: number; change: number|null; source: string; stale?: boolean; asOf?: string; candles?: MarketCandle[] };
 export type ConsensusSignal = {
   signalId?: string;
