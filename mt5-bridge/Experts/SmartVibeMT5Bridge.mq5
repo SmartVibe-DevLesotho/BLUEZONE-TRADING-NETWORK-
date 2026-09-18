@@ -23,7 +23,7 @@ void ExecuteCommand(string line){string p[];int n=StringSplit(line,'|',p);if(n<2
 
 void MarketPush(){
   MqlRates rates[]; ArraySetAsSeries(rates,false); int copied=CopyRates(_Symbol,PERIOD_M1,0,180,rates); if(copied<=0)return;
-  string bars="["; for(int i=0;i<copied;i++){ if(i>0)bars+=","; bars+="{\\"t\\":"+IntegerToString((long)rates[i].time)+",\\"o\\":"+DoubleToString(rates[i].open,_Digits)+",\\"h\\":"+DoubleToString(rates[i].high,_Digits)+",\\"l\\":"+DoubleToString(rates[i].low,_Digits)+",\\"c\\":"+DoubleToString(rates[i].close,_Digits)+"}"; } bars+="]";
+  string q=CharToString(34); string bars="["; for(int i=0;i<copied;i++){ if(i>0)bars+=","; bars+="{"+q+"t"+q+":"+IntegerToString((long)rates[i].time)+","+q+"o"+q+":"+DoubleToString(rates[i].open,_Digits)+","+q+"h"+q+":"+DoubleToString(rates[i].high,_Digits)+","+q+"l"+q+":"+DoubleToString(rates[i].low,_Digits)+","+q+"c"+q+":"+DoubleToString(rates[i].close,_Digits)+"}"; } bars+="]";
   string body="symbol="+FormEncode(_Symbol)+"&timeframe=M1&bars="+FormEncode(bars); string r; Request("POST",GatewayUrl+"/device/market",body,r,5000);
 }
 
