@@ -3,45 +3,49 @@ import { supabase } from './supabase';
 export async function invokeFunction<T>(name: string, body: unknown): Promise<T> {
   if (!supabase) throw new Error('Supabase is not configured.');
   const { data, error } = await supabase.functions.invoke(name, { body: JSON.stringify(body) });
-  if (error) throw error;
+  if (error) {
+    const context = (error as any)?.context;
+    if (context && typeof context.json === 'function') {
+      try {
+        const payload = await context.json();
+        if (payload?.error) throw new Error(String(payload.error));
+      } catch (nested: any) {
+        if (nested?.message && nested.message !== error.message) throw nested;
+      }
+    }
+    throw error;
+  }
   return data as T;
 }
 
-export type MarketCandle = { time: string; close: number };
-export type MarketQuote = { symbol: string; price: number; change: number; source: string; stale?: boolean; asOf?: string; candles?: MarketCandle[] };
+export type MarketCandle = { time: string; open: number; high: number; low: number; close: number };
+export type MarketQuote = { symbol: string; price: number; change: number|null; source: string; stale?: boolean; asOf?: string; candles?: MarketCandle[] };
 export type ConsensusSignal = {
   signalId?: string;
   symbol: string;
-  direction: 'BUY'|'SELL';
+  direction: 'BUY'|'SELL'|'WAIT';
   score: number;
   total: 100;
   session: string;
   style: 'SmartVibe Trading Network';
-  entry: number;
-  sl: number|null;
-  tp: number|null;
+  entry?: number|null;
+  sl?: number|null;
+  tp?: number|null;
+  reason?: string;
+  dataStatus?: string;
+  finalDecision?: string;
   strategies?: unknown;
   management?: { milestonePips: 150; hardProfitCap: false; runner: true; exitRule: 'STRUCTURAL_INVALIDATION_OR_METHODOLOGY_REVERSAL'; trailingStop?: 'NONE_GENERIC' };
   evidence?: unknown;
 };
 export type SubscriptionQuota = { plan: string; packageKey?: string | null; packageName?: string | null; pricePaidLsl?: number; includedSignals: number; signalsUsed: number; signalsPending: number; signalsUnused: number; signalsRemaining: number; carryoverSignals: number; carryoverCreditLsl: number; scannerAccess?: boolean; whatsappGroupAccess?: boolean; allServicesAccess?: boolean };
-export type LicenseValidation = { valid: boolean; message: string; expiresAt?: string | null; plan?: string; packageKey?: string | null; packageName?: string | null; pricePaidLsl?: number; includedSignals?: number; signalsUsed?: number; signalsPending?: number; signalsRemaining?: number; carryoverSignals?: number; carryoverCreditLsl?: number; scannerAccess?: boolean; whatsappGroupAccess?: boolean; allServicesAccess?: boolean };
+export type LicenseValidation = { valid: boolean; message: string; expiresAt?: string | null; plan?: string; packageKey?: string | null; packageName?: string | null; pricePaidLsl?: number; includedSignals?: number; signalsUsed?: number; signalsRemaining?: number; scannerAccess?: boolean; whatsappGroupAccess?: boolean; allServicesAccess?: boolean; };
 export type LiveExecutionResult = { ok: boolean; mode: 'LIVE_ONLY'; clientOrderId?: string; signalId?: string; externalOrderId?: string; brokerPrice?: number; direction?: 'BUY'|'SELL'; lot?: number; sl?: number|null; tp?: number|null; error?: string; reconciliationRequired?: boolean; idempotent?: boolean; };
 export type ChartScanResult = {
-  ok: boolean;
-  detectedInstrument: string | null;
-  detectedInstrumentLabel: string | null;
-  broker: string | null;
-  timeframe: string | null;
-  chartReadable: boolean;
-  direction: 'BUY' | 'SELL' | 'WAIT';
-  confidence: number;
+  ok: boolean; detectedInstrument: string | null; detectedInstrumentLabel: string | null; broker: string | null; timeframe: string | null; chartReadable: boolean; direction: 'BUY'|'SELL'|'WAIT'; confidence: number;
   methodology: { higherTimeframeDirection: string; m30Confirmation: string; resistanceSupportRbs: string; engulfing: string; lowerTimeframeConfirmation: string; trendlinePriceAction: string; structuralInvalidation: string; continuationManagement: string; };
-  feedback: string;
-  warnings: string[];
-  evidence: string[];
+  feedback: string; warnings: string[]; evidence: string[];
 };
-
 export const getMarketQuotes = (symbols: string[]) => invokeFunction<{quotes: MarketQuote[]}>('market-data', { symbols });
 export const getConsensusSignals = (input: {symbols: string[]; threshold?: number; session?: string; style?: string}) => invokeFunction<{ok?: boolean; signals: ConsensusSignal[]; subscription?: SubscriptionQuota}>('consensus-signals', input);
 export const executeLiveTrade = (input: { signalId: string; clientOrderId: string; lot: number }) => invokeFunction<LiveExecutionResult>('live-execute', input);
