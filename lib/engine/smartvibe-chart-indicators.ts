@@ -59,11 +59,13 @@ export function calculateSmartVibeIndicators(input:MarketCandle[]):IndicatorSnap
   }
 
   if(prevDay&&lastDay){
-    const pdInside=lastDay.high<prevDay.high&&lastDay.low>prevDay.low;
     const last=bars.at(-1)!;
+    const pdInside=lastDay.high<prevDay.high&&lastDay.low>prevDay.low;
     if(pdInside)markers.push({index:bars.length-1,price:last.high,dir:'info',label:'SV ID'});
     if(last.high>prevDay.high&&last.close<prevDay.high)markers.push({index:bars.length-1,price:last.high,dir:'sell',label:'SV SELL'});
     if(last.low<prevDay.low&&last.close>prevDay.low)markers.push({index:bars.length-1,price:last.low,dir:'buy',label:'SV BUY'});
+    if(lastDay.close<lastDay.open&&prevDay.close>prevDay.open)markers.push({index:bars.length-1,price:last.high,dir:'sell',label:'SV FRD'});
+    if(lastDay.close>lastDay.open&&prevDay.close<prevDay.open)markers.push({index:bars.length-1,price:last.low,dir:'buy',label:'SV FGD'});
   }
   if(days.length>=3){
     const d1=days.at(-2)!,d2=days.at(-3)!,last=bars.at(-1)!;
@@ -84,7 +86,8 @@ export function calculateSmartVibeIndicators(input:MarketCandle[]):IndicatorSnap
     }
   }
 
-  const vol=bars.map(b=>(b as any).volume??0), volBase=sma(vol,30);
+  // SMARTVIBE PRO volume filter defaults to disabled, exactly like the Pine source.
+  const vol=bars.map(b=>(b as any).volume??0), volBase=sma(vol,20);
   const beams:{value:number;dir:'bull'|'bear';strength:number}[]=[];
   for(let i=14;i<bars.length;i++){
     const av=a[i]??0,base=volBase[i]??0,vr=base>0?vol[i]/base:0;
@@ -94,7 +97,7 @@ export function calculateSmartVibeIndicators(input:MarketCandle[]):IndicatorSnap
   }
   beams.slice(-12).forEach(b=>levels.push({name:b.dir==='bull'?'LONG LIQ':'SHORT LIQ',value:b.value,tone:b.dir==='bull'?'green':'red',kind:'dotted'}));
 
-  // SMARTVIBE AI-BOT: EMA 11/34 crossover, ATR SL and four TP levels.
+  // SMARTVIBE AI-BOT: exact supplied EMA ribbon lengths and confirmed EMA 11/34 crossover.
   let tradePlan:IndicatorSnapshot['tradePlan'];
   for(let i=1;i<bars.length;i++){
     const e11=emaLines[1].values[i],p11=emaLines[1].values[i-1],e34=emaLines[7].values[i],p34=emaLines[7].values[i-1];
@@ -106,8 +109,8 @@ export function calculateSmartVibeIndicators(input:MarketCandle[]):IndicatorSnap
   const e11=emaLines[1].values.at(-1),e34=emaLines[7].values.at(-1),av=a.at(-1)??null;
   const recentCross=markers.filter(m=>m.label==='SMARTVIBE BUY'||m.label==='SMARTVIBE SELL').at(-1);
   if(recentCross&&av&&e11!==null&&e34!==null){
-    const dir=recentCross.dir==='buy'?'BUY':'SELL',entry=bars[recentCross.index].close,sl=entry+(dir==='BUY'?-1:1)*av*2;
-    tradePlan={direction:dir,entry,sl,tps:[1,2,3,4].map(x=>entry+(dir==='BUY'?1:-1)*av*2*x)};
+    const dir=recentCross.dir==='buy'?'BUY':'SELL',entry=bars[recentCross.index].close,signalAtr=a[recentCross.index]??av,sl=entry+(dir==='BUY'?-1:1)*signalAtr*2;
+    tradePlan={direction:dir,entry,sl,tps:[1,2,3,4].map(x=>entry+(dir==='BUY'?1:-1)*signalAtr*2*x)};
     levels.push({name:'ENTRY',value:entry,tone:'cyan',kind:'solid'},{name:'SL',value:sl,tone:'red',kind:'solid'});
     tradePlan.tps.forEach((v,i)=>levels.push({name:`TP${i+1}`,value:v,tone:'green',kind:'dashed'}));
   }
@@ -117,9 +120,14 @@ export function calculateSmartVibeIndicators(input:MarketCandle[]):IndicatorSnap
   bars.forEach((b,i)=>{const t=Date.parse(b.time),k=Math.floor(t/14400000)*14400000,g=buckets.get(k);if(!g)buckets.set(k,{left:i,right:i,open:b.open,high:b.high,low:b.low,close:b.close});else{g.right=i;g.high=Math.max(g.high,b.high);g.low=Math.min(g.low,b.low);g.close=b.close;}});
   const htfCandles=[...buckets.values()].slice(-8);
 
+  // Supplied IB script defaults to 09:30-10:30 America/New_York. Keep its range explicit in UTC for live rendering.
   const ib=bars.filter(b=>{const d=new Date(Date.parse(b.time));const h=d.getUTCHours()+d.getUTCMinutes()/60;return h>=13.5&&h<14.5;});
   if(ib.length){const ih=Math.max(...ib.map(x=>x.high)),il=Math.min(...ib.map(x=>x.low));levels.push({name:'IBH',value:ih,tone:'blue',kind:'solid'},{name:'IBL',value:il,tone:'blue',kind:'solid'},{name:'IBM',value:(ih+il)/2,tone:'white',kind:'dashed'});}
 
+
+  // SMARTVIBE PRO Monday opening range.
+  const mondayBars=bars.filter(b=>new Date(Date.parse(b.time)).getUTCDay()===1);
+  if(mondayBars.length)levels.push({name:'MONDAY HIGH',value:Math.max(...mondayBars.map(b=>b.high)),tone:'magenta',kind:'solid'},{name:'MONDAY LOW',value:Math.min(...mondayBars.map(b=>b.low)),tone:'magenta',kind:'solid'});
   const lastE11=e11??0,lastE34=e34??0;
   const dashboards:IndicatorSnapshot['dashboards']=[
     {title:'SMARTVIBE AI-BOT SYSTEM',rows:[['Signal',tradePlan?.direction??'WAIT'],['EMA 11 / 34',lastE11>lastE34?'BULLISH':'BEARISH'],['EMA 200',(emaLines[8].values.at(-1)??0)<closes.at(-1)!?'ABOVE':'BELOW'],['Authority','SMARTVIBE']]},
