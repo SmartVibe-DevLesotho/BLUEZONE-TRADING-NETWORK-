@@ -21,10 +21,19 @@ void Ping(string id,string action,string symbol){if(action=="positions"){Result(
 bool RiskAllows(string symbol,double lot,double sl,bool isBuy,string &reason){if(!TerminalInfoInteger(TERMINAL_TRADE_ALLOWED)||!MQLInfoInteger(MQL_TRADE_ALLOWED)){reason="AUTOTRADING_DISABLED";return false;}if(PositionsTotal()>=MaxOpenPositions){reason="MAX_OPEN_POSITIONS";return false;}if(sl<=0){reason="STOP_LOSS_REQUIRED";return false;}double tickSize=SymbolInfoDouble(symbol,SYMBOL_TRADE_TICK_SIZE),tickValue=SymbolInfoDouble(symbol,SYMBOL_TRADE_TICK_VALUE);if(tickSize<=0||tickValue<=0){reason="RISK_SPEC_UNAVAILABLE";return false;}MqlTick t;if(!SymbolInfoTick(symbol,t)){reason="QUOTE_UNAVAILABLE";return false;}double entry=isBuy?t.ask:t.bid;double risk=MathAbs(entry-sl)/tickSize*tickValue*lot;double maxRisk=AccountInfoDouble(ACCOUNT_EQUITY)*(MathMin(5.0,MathMax(0.1,MaxRiskPct))/100.0);if(!MathIsValidNumber(risk)||risk<=0||risk>maxRisk){reason="RISK_LIMIT";return false;}return true;}
 void ExecuteCommand(string line){string p[];int n=StringSplit(line,'|',p);if(n<2)return;string type=p[0],id=p[1];if(type=="PING"){if(n>=4)Ping(id,p[2],p[3]);return;}if(type=="ORDER"&&n>=8){string symbol=p[2],side=p[3];if(side=="buy"||side=="Buy"||side=="bUy"||side=="BUY")side="BUY";else side="SELL";double lot=StringToDouble(p[4]),sl=StringToDouble(p[5]),tp=StringToDouble(p[6]),price=0;string comment=p[7],reason="";SymbolSelect(symbol,true);if(!RiskAllows(symbol,lot,sl,side=="BUY",reason)){Result(id,false,0,0,0,0,0,reason);return;}Trade.SetExpertMagicNumber(MagicNumber);Trade.SetDeviationInPoints(DeviationPoints);Trade.SetTypeFillingBySymbol(symbol);bool ok=(side=="BUY")?Trade.Buy(lot,symbol,price,sl,tp,comment):Trade.Sell(lot,symbol,price,sl,tp,comment);Result(id,ok,(int)Trade.ResultRetcode(),Trade.ResultOrder(),Trade.ResultPrice(),Trade.ResultBid(),Trade.ResultAsk(),Trade.ResultRetcodeDescription());return;}if(type=="CLOSE"&&n>=3){ulong ticket=(ulong)StringToInteger(p[2]);Trade.SetExpertMagicNumber(MagicNumber);bool ok=Trade.PositionClose(ticket);Result(id,ok,(int)Trade.ResultRetcode(),ticket,Trade.ResultPrice(),Trade.ResultBid(),Trade.ResultAsk(),Trade.ResultRetcodeDescription());return;}if(type=="MODIFY"&&n>=5){ulong ticket=(ulong)StringToInteger(p[2]);double sl=StringToDouble(p[3]),tp=StringToDouble(p[4]);Trade.SetExpertMagicNumber(MagicNumber);bool ok=Trade.PositionModify(ticket,sl,tp);Result(id,ok,(int)Trade.ResultRetcode(),ticket,Trade.ResultPrice(),Trade.ResultBid(),Trade.ResultAsk(),Trade.ResultRetcodeDescription());return;}}
 
-void MarketPush(){
-  MqlRates rates[]; ArraySetAsSeries(rates,false); int copied=CopyRates(_Symbol,PERIOD_M1,0,180,rates); if(copied<=0)return;
+datetime lastHigherMarketPush=0;
+void PushMarket(string timeframe, ENUM_TIMEFRAMES period, int count){
+  MqlRates rates[]; ArraySetAsSeries(rates,false); int copied=CopyRates(_Symbol,period,0,count,rates); if(copied<=0)return;
   string q=CharToString(34); string bars="["; for(int i=0;i<copied;i++){ if(i>0)bars+=","; bars+="{"+q+"t"+q+":"+IntegerToString((long)rates[i].time)+","+q+"o"+q+":"+DoubleToString(rates[i].open,_Digits)+","+q+"h"+q+":"+DoubleToString(rates[i].high,_Digits)+","+q+"l"+q+":"+DoubleToString(rates[i].low,_Digits)+","+q+"c"+q+":"+DoubleToString(rates[i].close,_Digits)+"}"; } bars+="]";
-  string body="symbol="+FormEncode(_Symbol)+"&timeframe=M1&bars="+FormEncode(bars); string r; Request("POST",GatewayUrl+"/device/market",body,r,5000);
+  string body="symbol="+FormEncode(_Symbol)+"&timeframe="+FormEncode(timeframe)+"&bars="+FormEncode(bars); string r; Request("POST",GatewayUrl+"/device/market",body,r,7000);
+}
+void MarketPush(){
+  PushMarket("M1",PERIOD_M1,180);
+  if(TimeCurrent()-lastHigherMarketPush>=60){
+    PushMarket("H1",PERIOD_H1,800);
+    PushMarket("H4",PERIOD_H4,300);
+    lastHigherMarketPush=TimeCurrent();
+  }
 }
 
 void Poll(){string r;if(!Request("GET",GatewayUrl+"/device/next","",r,4000))return;if(r=="NONE"||StringLen(r)<2)return;ExecuteCommand(r);}
