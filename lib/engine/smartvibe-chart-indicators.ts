@@ -87,7 +87,7 @@ export function calculateSmartVibeIndicators(input:MarketCandle[]):IndicatorSnap
   const vol=bars.map(b=>(b as any).volume??0), volBase=sma(vol,30);
   const beams:{value:number;dir:'bull'|'bear';strength:number}[]=[];
   for(let i=14;i<bars.length;i++){
-    const av=a[i]??0,vr=volBase[i]&&volBase[i]>0?vol[i]/volBase[i]:0;
+    const av=a[i]??0,base=volBase[i]??0,vr=base>0?vol[i]/base:0;
     const range=bars[i].high-bars[i].low, rr=av>0?range/av:0;
     const trigger=vr>=2 || rr>=2;
     if(trigger&&av>0){const s=Math.max(vr,rr); beams.push({value:bars[i].close-av*.5,dir:'bull',strength:s},{value:bars[i].close+av*.5,dir:'bear',strength:s});}
