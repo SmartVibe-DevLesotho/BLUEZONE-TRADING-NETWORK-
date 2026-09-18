@@ -121,7 +121,7 @@ export function calculateSmartVibeIndicators(input:MarketCandle[]):IndicatorSnap
   if(ib.length){const ih=Math.max(...ib.map(x=>x.high)),il=Math.min(...ib.map(x=>x.low));levels.push({name:'IBH',value:ih,tone:'blue',kind:'solid'},{name:'IBL',value:il,tone:'blue',kind:'solid'},{name:'IBM',value:(ih+il)/2,tone:'white',kind:'dashed'});}
 
   const lastE11=e11??0,lastE34=e34??0;
-  const dashboards=[
+  const dashboards:IndicatorSnapshot['dashboards']=[
     {title:'SMARTVIBE AI-BOT SYSTEM',rows:[['Signal',tradePlan?.direction??'WAIT'],['EMA 11 / 34',lastE11>lastE34?'BULLISH':'BEARISH'],['EMA 200',(emaLines[8].values.at(-1)??0)<closes.at(-1)!?'ABOVE':'BELOW'],['Authority','SMARTVIBE']]},
     {title:'SMARTVIBE PRO',rows:[['PDH',prevDay?prevDay.high.toString():'—'],['PDL',prevDay?prevDay.low.toString():'—'],['Signals',String(markers.filter(x=>x.dir!=='info').length)],['Methodology','PRIMARY AUTHORITY']]},
   ];
